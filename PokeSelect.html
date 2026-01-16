@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buai Academy - Official Sorting</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e74c3c;
+            --bg: #1a1a2e;
+            --card-bg: #16213e;
+            --text: #ecf0f1;
+            --gold: #f1c40f; 
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 { color: #fff; margin-bottom: 0.5rem; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        p { color: #aeb6bf; margin-bottom: 2rem; max-width: 600px; text-align: center; }
+
+        /* HOUSE SELECTION GRID */
+        .house-grid {
+            display: grid;
+            gap: 15px;
+            max-width: 800px;
+            width: 100%;
+            margin-bottom: 2rem;
+            grid-template-columns: 1fr; 
+        }
+
+        @media (min-width: 768px) {
+            .house-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .house-btn {
+            background: var(--card-bg);
+            border: 2px solid #0f3460;
+            color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .house-btn:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent);
+        }
+
+        .house-btn[data-house="Mystical Forest"] { border-color: #2ecc71; }
+        .house-btn[data-house="Desert Raiders"] { border-color: #f39c12; }
+        .house-btn[data-house="Astral Party"] { border-color: #9b59b6; }
+        .house-btn[data-house="Winter's Claw"] { border-color: #3498db; }
+        .house-btn[data-house="BOOM BUGS"] { border-color: #e74c3c; }
+        .house-btn[data-house="Fantaschia"] { border-color: #e91e63; }
+
+        /* LOADING ANIMATION */
+        .loader-container {
+            display: none;
+            text-align: center;
+            margin: 2rem 0;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: var(--accent);
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* REVEAL SECTION */
+        #reveal-section {
+            display: none;
+            width: 100%;
+            max-width: 1000px; 
+        }
+
+        .starter-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .pokemon-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            width: 220px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s, background 0.3s;
+            opacity: 0; 
+            transform: translateY(20px);
+        }
+
+        .pokemon-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .pokemon-card:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--accent);
+        }
+
+        .pokemon-card.secret-card {
+            border-color: var(--gold);
+            background: linear-gradient(135deg, rgba(20,20,20,1) 0%, rgba(50,50,0,0.3) 100%);
+        }
+        .pokemon-card.secret-card:hover {
+            box-shadow: 0 0 20px var(--gold);
+        }
+
+        .pokemon-card img {
+            width: 120px;
+            height: 120px;
+            image-rendering: pixelated;
+            filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+        }
+
+        .pokemon-card h3 {
+            text-transform: capitalize;
+            margin: 10px 0 5px;
+            color: #fff;
+        }
+
+        .type-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            background: #333;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .warning-text {
+            font-size: 0.8rem;
+            color: #bdc3c7;
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        /* RESULT SECTION */
+        #final-result {
+            display: none;
+            margin-top: 2rem;
+            background: #0f3460;
+            padding: 2rem;
+            border-radius: 15px;
+            border: 2px solid var(--accent);
+            text-align: center;
+            animation: fadeIn 0.5s;
+            max-width: 600px;
+        }
+
+        /* SECRET MODE STYLES */
+        #final-result.secret-mode {
+            background: #2c0404;
+            border-color: var(--gold);
+            box-shadow: 0 0 30px rgba(255,0,0,0.2);
+        }
+
+        #final-result.secret-mode h3 {
+            color: var(--accent);
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+        }
+
+        .secret-instruction {
+            color: var(--gold);
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px dashed var(--gold);
+            animation: pulse 2s infinite;
+        }
+
+        .code-box {
+            background: #000;
+            color: #0f0;
+            font-family: monospace;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: left;
+            word-break: break-all;
+            border: 1px solid #333;
+        }
+
+        button.action-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button.action-btn:hover { background: #c0392b; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
+
+    </style>
+</head>
+<body>
+
+    <h1>Buai Academy Sorting</h1>
+    <p>Choose your House to begin the ritual. The Academy will scan for 3 partners compatible with your soul.</p>
+
+    <div class="house-grid" id="house-grid">
+        <div class="house-btn" onclick="startRitual('Mystical Forest')" data-house="Mystical Forest">🌿 Mystical Forest<br><small>Grass • Water • Psychic</small></div>
+        <div class="house-btn" onclick="startRitual('Desert Raiders')" data-house="Desert Raiders">🏜️ Desert Raiders<br><small>Ground • Normal • Dark</small></div>
+        <div class="house-btn" onclick="startRitual('Astral Party')" data-house="Astral Party">🌙 Astral Party<br><small>Ghost • Flying • Rock</small></div>
+        <div class="house-btn" onclick="startRitual('Winter\'s Claw')" data-house="Winter's Claw">❄️ Winter's Claw<br><small>Ice • Poison • Fighting</small></div>
+        <div class="house-btn" onclick="startRitual('BOOM BUGS')" data-house="BOOM BUGS">💥 BOOM BUGS<br><small>Bug • Fire • Electric</small></div>
+        <div class="house-btn" onclick="startRitual('Fantaschia')" data-house="Fantaschia">🛡️ Fantaschia<br><small>Fairy • Steel • Dragon</small></div>
+    </div>
+
+    <div class="loader-container" id="loader">
+        <div class="spinner"></div>
+        <p>Consulting the Stars...<br><small>(Filtering out weaklings and gods...)</small></p>
+    </div>
+
+    <div id="reveal-section">
+        <h2 style="text-align:center; color: #fff;">Your Destiny Awaits</h2>
+        <p style="margin: 0 auto 20px;">Select one option below.</p>
+        <div class="starter-container" id="cards-container"></div>
+    </div>
+
+    <div id="final-result">
+        <h3 id="result-title">🎉 Selection Confirmed!</h3>
+        <p id="result-desc">Copy this code and paste it into the Reddit thread:</p>
+        
+        <div id="secret-warning" style="display:none;"></div>
+
+        <div class="code-box" id="reddit-code"></div>
+        <button class="action-btn" onclick="copyCode()">Copy Code</button>
+        <br><br>
+        <button class="action-btn" style="background:#555;" onclick="location.reload()">Reset / Reroll</button>
+    </div>
+
+    <script>
+        const houseData = {
+            "Mystical Forest": ["grass", "water", "psychic"],
+            "Desert Raiders": ["ground", "normal", "dark"],
+            "Astral Party": ["ghost", "flying", "rock"],
+            "Winter's Claw": ["ice", "poison", "fighting"],
+            "BOOM BUGS": ["bug", "fire", "electric"],
+            "Fantaschia": ["fairy", "steel", "dragon"]
+        };
+
+        const BANNED_NAMES = [
+            "great-tusk", "scream-tail", "brute-bonnet", "flutter-mane", 
+            "slither-wing", "sandy-shocks", "roaring-moon", "walking-wake", 
+            "gouging-fire", "raging-bolt", "iron-treads", "iron-bundle", 
+            "iron-hands", "iron-jugulis", "iron-moth", "iron-thorns", 
+            "iron-valiant", "iron-leaves", "iron-boulder", "iron-crown",
+            "nihilego", "buzzwole", "pheromosa", "xurkitree", "celesteela", 
+            "kartana", "guzzlord", "poipole", "naganadel", "stakataka", "blacephalon",
+            "type-null", "silvally"
+        ];
+
+        let selectedHouse = "";
+
+        async function startRitual(house) {
+            selectedHouse = house;
+            document.getElementById('house-grid').style.display = 'none';
+            document.getElementById('loader').style.display = 'block';
+
+            const types = houseData[house];
+            const container = document.getElementById('cards-container');
+            container.innerHTML = '';
+
+            try {
+                const promises = types.map(type => getValidPokemonForType(type));
+                const results = await Promise.all(promises);
+
+                const secretRoll = Math.random();
+                if (secretRoll <= 0.025) { 
+                    results.push({
+                        name: "Student Council Invitation",
+                        sprites: { front_default: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/secret-key.png" },
+                        majorType: "Classified",
+                        isSecret: true
+                    });
+                }
+
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('reveal-section').style.display = 'block';
+
+                results.forEach((pokemon, index) => {
+                    createCard(pokemon, index);
+                });
+
+            } catch (e) {
+                console.error(e);
+                alert("Connection Error. Please refresh and try again.");
+                location.reload(); 
+            }
+        }
+
+        async function getValidPokemonForType(type) {
+            const res = await fetch(`https://pokeapi.co/api/v2/type/${type}`);
+            if (!res.ok) throw new Error("Type not found");
+            const data = await res.json();
+            const roster = data.pokemon;
+
+            let isValid = false;
+            let pokemonDetails = null;
+            let attempts = 0;
+
+            while (!isValid && attempts < 30) {
+                attempts++;
+                const rand = Math.floor(Math.random() * roster.length);
+                const candidate = roster[rand].pokemon;
+
+                if (BANNED_NAMES.includes(candidate.name)) continue;
+
+                const id = candidate.url.split('/')[6];
+                if (parseInt(id) >= 10000) continue; 
+
+                try {
+                    const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}/`);
+                    if (!speciesRes.ok) continue; 
+                    const speciesData = await speciesRes.json();
+
+                    if (speciesData.is_legendary || speciesData.is_mythical) continue;
+
+                    const chainUrl = speciesData.evolution_chain.url;
+                    const chainRes = await fetch(chainUrl);
+                    const chainData = await chainRes.json();
+
+                    if (checkEvolutionValidity(chainData.chain, candidate.name)) {
+                        const finalRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}/`);
+                        pokemonDetails = await finalRes.json();
+                        pokemonDetails.majorType = type;
+                        pokemonDetails.isSecret = false; 
+                        isValid = true;
+                    }
+                } catch (err) { continue; }
+            }
+
+            if (!isValid) {
+                return { 
+                    name: "eevee", 
+                    sprites: { front_default: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/133.png" }, 
+                    majorType: type,
+                    isSecret: false 
+                };
+            }
+            return pokemonDetails;
+        }
+
+        function checkEvolutionValidity(chainLink, targetName) {
+            const stage1 = chainLink.species.name;
+            const stage2Arr = chainLink.evolves_to;
+            if (targetName === stage1) return true; 
+            for (let s2 of stage2Arr) {
+                if (targetName === s2.species.name) {
+                    if (s2.evolves_to.length > 0) return true; 
+                    return false; 
+                }
+                for (let s3 of s2.evolves_to) {
+                    if (targetName === s3.species.name) return false; 
+                }
+            }
+            return false;
+        }
+
+        function createCard(pokemon, index) {
+            const div = document.createElement('div');
+            div.className = 'pokemon-card';
+            if (pokemon.isSecret) div.classList.add('secret-card');
+            div.style.transitionDelay = `${index * 200}ms`;
+            div.onclick = () => selectStarter(pokemon);
+
+            const typeColors = {
+                grass: "#78C850", water: "#6890F0", fire: "#F08030", electric: "#F8D030",
+                psychic: "#F85888", ice: "#98D8D8", dragon: "#7038F8", dark: "#705848",
+                fairy: "#EE99AC", fighting: "#C03028", flying: "#A890F0", poison: "#A040A0",
+                ground: "#E0C068", rock: "#B8A038", bug: "#A8B820", ghost: "#705898",
+                steel: "#B8B8D0", normal: "#A8A878", "Classified": "#111"
+            };
+            const color = typeColors[pokemon.majorType] || "#333";
+
+            let warning = `Choosing this locks you to <strong>${pokemon.majorType.toUpperCase()}</strong>.`;
+            if (pokemon.isSecret) warning = "<strong>⚠️ HIGHLY CLASSIFIED ⚠️</strong><br>Unknown fate awaits.";
+
+            div.innerHTML = `
+                <div class="type-badge" style="background:${color}">${pokemon.majorType}</div>
+                <img src="${pokemon.sprites.front_default || ''}" alt="${pokemon.name}">
+                <h3>${pokemon.name.replace(/-/g, ' ')}</h3>
+                <div class="warning-text">${warning}</div>
+            `;
+
+            document.getElementById('cards-container').appendChild(div);
+            setTimeout(() => div.classList.add('visible'), 50);
+        }
+
+        function selectStarter(pokemon) {
+            document.getElementById('reveal-section').style.display = 'none';
+            const finalResult = document.getElementById('final-result');
+            finalResult.style.display = 'block';
+
+            const userText = prompt("Enter your Trainer Name:", "Trainer");
+            const finalName = userText || "Trainer";
+
+            const title = document.getElementById('result-title');
+            const desc = document.getElementById('result-desc');
+            const secretWarning = document.getElementById('secret-warning');
+
+            if (pokemon.isSecret) {
+                // UI TRANSFORMATION FOR SECRET
+                finalResult.classList.add('secret-mode');
+                title.textContent = "⚠️ ANOMALY DETECTED ⚠️";
+                desc.textContent = "Do not ignore this message.";
+                
+                secretWarning.style.display = 'block';
+                secretWarning.className = 'secret-instruction';
+                secretWarning.innerHTML = "CONTACT u/Max_Reo IMMEDIATELY.<br>DO NOT POST THIS PUBLICLY.<br>SEND THE CODE BELOW VIA DM.";
+
+                const text = `- **🎓 Buai Academy - SECRET TOKEN**\n> **User:** ${finalName}\n> **Origin:** ${selectedHouse}\n> **Code:** SC-INVITE-007\n\n*Awaiting instructions from The Council.*`;
+                document.getElementById('reddit-code').textContent = text;
+            } else {
+                // STANDARD UI
+                finalResult.classList.remove('secret-mode');
+                title.textContent = "🎉 Selection Confirmed!";
+                desc.textContent = "Copy this code and paste it into the Reddit thread:";
+                secretWarning.style.display = 'none';
+
+                const text = `- **🎓 Buai Academy Student ID**\n> **Name:** ${finalName}\n> **House:** ${selectedHouse}\n> **Major:** ${pokemon.majorType.toUpperCase()}\n> **Partner:** ${pokemon.name.toUpperCase()}\n\n*Enrollment Confirmed.*`;
+                document.getElementById('reddit-code').textContent = text;
+            }
+        }
+
+        function copyCode() {
+            const text = document.getElementById('reddit-code').textContent;
+            navigator.clipboard.writeText(text).then(() => alert("Copied!"));
+        }
+    </script>
+</body>
+</html>
