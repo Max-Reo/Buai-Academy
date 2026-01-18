@@ -310,7 +310,7 @@
                 const results = await Promise.all(promises);
 
                 const secretRoll = Math.random();
-                if (secretRoll <= 0.025) { 
+                if (secretRoll <= 0.001) { 
                     results.push({
                         name: "Student Council Invitation",
                         sprites: { front_default: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/secret-key.png" },
@@ -473,4 +473,5 @@
         }
     </script>
 </body>
+
 </html>
