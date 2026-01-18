@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buai Academy - Club Recruitment</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e67e22;
+            --bg: #1a1a2e;
+            --card-bg: #16213e;
+            --text: #ecf0f1;
+            --gold: #f1c40f; 
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 { color: #fff; margin-bottom: 0.5rem; text-align: center; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+        p { color: #aeb6bf; margin-bottom: 2rem; max-width: 600px; text-align: center; }
+
+        /* GRID SYSTEMS */
+        .selection-grid {
+            display: grid;
+            gap: 15px;
+            max-width: 1000px;
+            width: 100%;
+            margin-bottom: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            justify-content: center;
+        }
+
+        /* BUTTON STYLES */
+        .select-btn {
+            background: var(--card-bg);
+            border: 2px solid #0f3460;
+            color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 110px;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent; 
+        }
+
+        .select-btn:active { transform: scale(0.96); }
+        .select-btn:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent);
+        }
+
+        .select-btn h3 { margin: 0; font-size: 1.1rem; pointer-events: none; }
+        .select-btn span { font-size: 0.8rem; color: #aeb6bf; margin-top: 5px; pointer-events: none; }
+
+        /* SECTIONS */
+        #step-1-major, #step-2-club, #step-3-reveal, #step-4-result {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hidden { display: none !important; }
+
+        /* LOADING ANIMATION */
+        .loader-container {
+            display: none;
+            text-align: center;
+            margin: 2rem 0;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: var(--accent);
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* POKEMON CARDS */
+        .starter-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .pokemon-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            width: 240px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s, background 0.3s;
+            opacity: 0; 
+            transform: translateY(20px);
+        }
+
+        .pokemon-card.visible { opacity: 1; transform: translateY(0); }
+        .pokemon-card:hover { background: rgba(255, 255, 255, 0.15); border-color: var(--accent); }
+
+        .pokemon-card.secret-card {
+            border-color: var(--gold);
+            background: linear-gradient(135deg, #2c0404 0%, #3e0000 100%);
+            box-shadow: 0 0 15px var(--gold);
+        }
+
+        .pokemon-card img {
+            width: 120px;
+            height: 120px;
+            image-rendering: pixelated;
+            filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+        }
+
+        .pokemon-card h3 { text-transform: capitalize; margin: 10px 0 5px; color: #fff; }
+
+        .stat-badge {
+            background: #222;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin-top: 8px;
+            display: inline-block;
+            color: #4cd137;
+            font-family: monospace;
+            border: 1px solid #444;
+        }
+        
+        .club-badge {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--accent);
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* RESULT SECTION */
+        #final-result {
+            background: #0f3460;
+            padding: 2rem;
+            border-radius: 15px;
+            border: 2px solid var(--accent);
+            text-align: center;
+            animation: fadeIn 0.5s;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        #final-result.secret-mode {
+            background: #2c0404;
+            border-color: var(--gold);
+            box-shadow: 0 0 30px rgba(241, 196, 15, 0.2);
+        }
+        #final-result.secret-mode h3 { color: var(--gold); }
+
+        .secret-instruction {
+            color: var(--gold);
+            font-weight: bold;
+            border: 1px dashed var(--gold);
+            padding: 10px;
+            margin: 15px 0;
+            animation: pulse 2s infinite;
+        }
+
+        .code-box {
+            background: #000;
+            color: #0f0;
+            font-family: monospace;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: left;
+            word-break: break-all;
+            border: 1px solid #333;
+            font-size: 0.85rem;
+        }
+
+        button.action-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 15px;
+            width: 100%;
+            max-width: 300px;
+        }
+        button.action-btn:hover { background: #d35400; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
+    </style>
+</head>
+<body>
+
+    <h1>Buai Academy Club Recruitment</h1>
+    
+    <div id="step-1-major">
+        <p>First, declare your Major (Element).</p>
+        <div class="selection-grid" id="type-grid"></div>
+    </div>
+
+    <div id="step-2-club" class="hidden">
+        <p>Now, choose an extracurricular Club to join.</p>
+        <div class="selection-grid" id="club-grid"></div>
+        <button class="action-btn" onclick="goBackToTypes()" style="background:#555; margin-top:20px;">&larr; Back to Majors</button>
+    </div>
+
+    <div class="loader-container" id="loader">
+        <div class="spinner"></div>
+        <p>Processing Application...<br><small>(Searching database...)</small></p>
+    </div>
+
+    <div id="step-3-reveal" class="hidden">
+        <h2 style="text-align:center;">Recruitment Options</h2>
+        <p>The Club President offers you one of these partners.</p>
+        <div class="starter-container" id="cards-container"></div>
+    </div>
+
+    <div id="step-4-result" class="hidden">
+        <div id="final-result">
+            <h3 id="result-title">🎉 Club Registration Complete!</h3>
+            <p id="result-desc">Copy this code and paste it into the Reddit thread:</p>
+            
+            <div id="secret-warning" style="display:none;"></div>
+
+            <div class="code-box" id="reddit-code"></div>
+            <button class="action-btn" onclick="copyCode()">Copy Code</button>
+            <br><br>
+            <button class="action-btn" style="background:#555;" onclick="location.reload()">Start Over</button>
+        </div>
+    </div>
+
+    <script>
+        const TYPES = [
+            "normal", "fire", "water", "grass", "electric", "ice", "fighting", "poison", "ground", 
+            "flying", "psychic", "bug", "rock", "ghost", "dragon", "steel", "dark", "fairy"
+        ];
+
+        // CLUB CONFIGURATION
+        const CLUBS = {
+            "Cooking Club": {
+                desc: "Nutrition & Health.",
+                bonusText: "+20 Base HP",
+                check: (stats) => stats.hp >= 50, 
+                getDisplay: (stats) => `HP: ${stats.hp} + 20`
+            },
+            "Martial Arts Club": {
+                desc: "Strength Training.",
+                bonusText: "+20 Base Atk",
+                check: (stats) => stats.attack >= 50,
+                getDisplay: (stats) => `Atk: ${stats.attack} + 20`
+            },
+            "Games Club": {
+                desc: "Tactical Defense.",
+                bonusText: "+20 Base Def",
+                check: (stats) => stats.defense >= 50,
+                getDisplay: (stats) => `Def: ${stats.defense} + 20`
+            },
+            "Music Club": {
+                desc: "Special Arts.",
+                bonusText: "+20 Base SpA",
+                check: (stats) => stats["special-attack"] >= 50,
+                getDisplay: (stats) => `SpA: ${stats["special-attack"]} + 20`
+            },
+            "Art Club": {
+                desc: "Mental Resilience.",
+                bonusText: "+20 Base SpD",
+                check: (stats) => stats["special-defense"] >= 50,
+                getDisplay: (stats) => `SpD: ${stats["special-defense"]} + 20`
+            },
+            "Sports Club": {
+                desc: "Agility Training.",
+                bonusText: "+20 Base Speed",
+                check: (stats) => stats.speed >= 50,
+                getDisplay: (stats) => `Spe: ${stats.speed} + 20`
+            },
+            "Dance Club": {
+                desc: "Move Tutor.",
+                bonusText: "Illegal Dance Move",
+                check: (stats) => stats.speed >= 50,
+                getDisplay: () => "Bonus: Dance Move"
+            },
+            "Library Club": {
+                desc: "Knowledge Buff.",
+                bonusText: "+10 SpA & +10 SpD", // UPDATED
+                check: (stats) => stats["special-attack"] >= 50,
+                getDisplay: (stats) => `SpA:${stats["special-attack"]}+10 | SpD:${stats["special-defense"]}+10` // UPDATED
+            },
+            "Research Labs": {
+                desc: "Evolved Pokémon Only.", 
+                bonusText: "Obscene Evolution Method",
+                // Validation happens in getValidPokemonForClub
+                check: () => true, 
+                getDisplay: () => "Status: Fully Evolved",
+                hasSecret: true
+            }
+        };
+
+        const BANNED_NAMES = [
+            "great-tusk", "scream-tail", "brute-bonnet", "flutter-mane", 
+            "slither-wing", "sandy-shocks", "roaring-moon", "walking-wake", 
+            "gouging-fire", "raging-bolt", "iron-treads", "iron-bundle", 
+            "iron-hands", "iron-jugulis", "iron-moth", "iron-thorns", 
+            "iron-valiant", "iron-leaves", "iron-boulder", "iron-crown",
+            "nihilego", "buzzwole", "pheromosa", "xurkitree", "celesteela", 
+            "kartana", "guzzlord", "poipole", "naganadel", "stakataka", "blacephalon",
+            "type-null", "silvally", "koraidon", "miraidon", "mewtwo", "mew", "lugia", "ho-oh",
+            "kyogre", "groudon", "rayquaza", "dialga", "palkia", "giratina", "arceus", "cosmog", "cosmoem"
+        ];
+
+        let selectedMajor = "";
+        let selectedClub = "";
+
+        window.onload = function() {
+            renderTypes();
+            renderClubs();
+        };
+
+        function renderTypes() {
+            const grid = document.getElementById('type-grid');
+            TYPES.forEach(type => {
+                const btn = document.createElement('div');
+                btn.className = 'select-btn';
+                btn.style.borderColor = getTypeColor(type);
+                btn.onclick = () => selectMajor(type);
+                btn.innerHTML = `<h3 style="color:${getTypeColor(type)}">${type.toUpperCase()}</h3>`;
+                grid.appendChild(btn);
+            });
+        }
+
+        function renderClubs() {
+            const grid = document.getElementById('club-grid');
+            for (const [name, data] of Object.entries(CLUBS)) {
+                const btn = document.createElement('div');
+                btn.className = 'select-btn';
+                btn.onclick = () => startRecruitment(name);
+                btn.innerHTML = `
+                    <h3>${name}</h3>
+                    <span>${data.desc}</span>
+                    <span style="color:var(--gold); font-weight:bold; font-size:0.75rem; margin-top:5px;">${data.bonusText}</span>
+                `;
+                grid.appendChild(btn);
+            }
+        }
+
+        function selectMajor(type) {
+            selectedMajor = type;
+            document.getElementById('step-1-major').classList.add('hidden');
+            document.getElementById('step-2-club').classList.remove('hidden');
+            window.scrollTo(0,0);
+        }
+
+        function goBackToTypes() {
+            selectedMajor = "";
+            document.getElementById('step-2-club').classList.add('hidden');
+            document.getElementById('step-1-major').classList.remove('hidden');
+        }
+
+        async function startRecruitment(clubName) {
+            selectedClub = clubName;
+            document.getElementById('step-2-club').classList.add('hidden');
+            document.getElementById('loader').style.display = 'block';
+
+            const container = document.getElementById('cards-container');
+            container.innerHTML = '';
+
+            try {
+                const results = [];
+                const usedIds = new Set(); 
+
+                for(let i=0; i<3; i++) {
+                    const poke = await getValidPokemonForClub(selectedMajor, selectedClub, usedIds);
+                    if(poke) {
+                        results.push(poke);
+                        if(!poke.fallback) usedIds.add(poke.id); 
+                    }
+                }
+
+                // SECRET CHECK: Research Labs (2.5% Chance)
+                if (CLUBS[selectedClub].hasSecret) {
+                    if (Math.random() <= 0.025) { 
+                        results.push({
+                            name: "Custom Evolution",
+                            sprites: { front_default: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dubious-disc.png" },
+                            stats: {},
+                            isSecret: true
+                        });
+                    }
+                }
+
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('step-3-reveal').classList.remove('hidden');
+
+                results.forEach((pokemon, index) => {
+                    createCard(pokemon, index);
+                });
+
+            } catch (e) {
+                console.error(e);
+                alert("Error connecting to Academy servers. Reloading...");
+                location.reload();
+            }
+        }
+
+        async function getValidPokemonForClub(type, club, usedIds) {
+            const res = await fetch(`https://pokeapi.co/api/v2/type/${type}`);
+            if (!res.ok) throw new Error("Type not found");
+            const data = await res.json();
+            const roster = data.pokemon;
+
+            let isValid = false;
+            let pokemonDetails = null;
+            let attempts = 0;
+            const maxAttempts = 30; 
+
+            while (!isValid && attempts < maxAttempts) {
+                attempts++;
+                const rand = Math.floor(Math.random() * roster.length);
+                const candidate = roster[rand].pokemon;
+
+                if (BANNED_NAMES.includes(candidate.name)) continue;
+                
+                const urlParts = candidate.url.split('/');
+                const id = parseInt(urlParts[urlParts.length - 2]);
+                if (id >= 10000) continue; 
+                if (usedIds.has(id)) continue; 
+
+                try {
+                    const detailRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}/`);
+                    const detailData = await detailRes.json();
+
+                    // Format Stats
+                    const stats = {
+                        hp: detailData.stats[0].base_stat,
+                        attack: detailData.stats[1].base_stat,
+                        defense: detailData.stats[2].base_stat,
+                        "special-attack": detailData.stats[3].base_stat,
+                        "special-defense": detailData.stats[4].base_stat,
+                        speed: detailData.stats[5].base_stat
+                    };
+
+                    if (!CLUBS[club].check(stats)) continue;
+
+                    const speciesRes = await fetch(detailData.species.url);
+                    const speciesData = await speciesRes.json();
+                    
+                    if (speciesData.is_legendary || speciesData.is_mythical) continue;
+
+                    const chainRes = await fetch(speciesData.evolution_chain.url);
+                    const chainData = await chainRes.json();
+
+                    // --- EVOLUTION STATUS CHECK ---
+                    // 0 = Final/Single Stage (Does not evolve further)
+                    // 1 = Base Stage (Can evolve)
+                    // 2 = Middle Stage (Can evolve)
+                    const evoStatus = checkEvolutionStatus(chainData.chain, candidate.name);
+                    
+                    const isResearch = (club === "Research Labs");
+
+                    if (isResearch) {
+                        // Research Labs Requirements:
+                        // 1. MUST be Final Stage (evoStatus == 0)
+                        // 2. MUST have evolved from something (Not a Basic/Single stage)
+                        
+                        // Check if it's Final
+                        if (evoStatus !== 0) continue; 
+
+                        // Check if it has a pre-evolution (API provides this)
+                        if (!speciesData.evolves_from_species) continue;
+
+                    } else {
+                        // All Other Clubs: MUST BE Evolvable (Status 1 or 2)
+                        // This bans final stages and single stages
+                        if (evoStatus === 0) continue; 
+                    }
+
+                    // Store formatted stats back into object
+                    detailData.stats = stats; 
+
+                    pokemonDetails = detailData;
+                    isValid = true;
+
+                } catch (err) { continue; }
+            }
+
+            if (!isValid) {
+                return { 
+                    name: "ditto", 
+                    id: 132,
+                    sprites: { front_default: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/132.png" },
+                    stats: { hp:48, attack:48, defense:48, "special-attack":48, "special-defense":48, speed:48 }, 
+                    fallback: true
+                };
+            }
+            return pokemonDetails;
+        }
+
+        // Returns: 0 (Invalid/Final/Single), 1 (Valid Base), 2 (Valid Middle)
+        function checkEvolutionStatus(chainLink, targetName) {
+            const currentName = chainLink.species.name;
+            const evolvesTo = chainLink.evolves_to;
+
+            if (currentName === targetName) {
+                if (evolvesTo.length > 0) return 1; // It Evolves
+                return 0; // It is Final
+            }
+            for (let child of evolvesTo) {
+                const status = checkEvolutionStatus(child, targetName);
+                if (status !== undefined) return status;
+            }
+        }
+
+        function createCard(pokemon, index) {
+            const div = document.createElement('div');
+            div.className = 'pokemon-card';
+            if (pokemon.isSecret) div.classList.add('secret-card');
+            
+            div.style.transitionDelay = `${index * 150}ms`;
+            div.onclick = () => selectPokemon(pokemon);
+
+            let subtext = "";
+            let imgSrc = pokemon.sprites.front_default;
+            
+            if (pokemon.isSecret) {
+                subtext = "<strong>⚠️ ANOMALY</strong>";
+            } else {
+                subtext = CLUBS[selectedClub].getDisplay(pokemon.stats);
+            }
+
+            div.innerHTML = `
+                <span class="club-badge">${selectedClub}</span>
+                <img src="${imgSrc || ''}" alt="${pokemon.name}">
+                <h3>${pokemon.name.replace(/-/g, ' ')}</h3>
+                <div class="stat-badge">${subtext}</div>
+            `;
+
+            document.getElementById('cards-container').appendChild(div);
+            setTimeout(() => div.classList.add('visible'), 50);
+        }
+
+        function selectPokemon(pokemon) {
+            document.getElementById('step-3-reveal').classList.add('hidden');
+            const finalResult = document.getElementById('step-4-result');
+            finalResult.classList.remove('hidden');
+
+            const resultBox = document.getElementById('final-result');
+            const userText = prompt("Enter your Student Name:", "Student");
+            const finalName = userText || "Student";
+            
+            const title = document.getElementById('result-title');
+            const desc = document.getElementById('result-desc');
+            const secretWarning = document.getElementById('secret-warning');
+
+            if (pokemon.isSecret) {
+                resultBox.classList.add('secret-mode');
+                title.textContent = "⚠️ RESEARCH BREACH";
+                desc.textContent = "Do not share the code publicly.";
+                
+                secretWarning.style.display = 'block';
+                secretWarning.className = 'secret-instruction';
+                secretWarning.innerHTML = "CONTACT u/Azerkerking IMMEDIATELY.<br>SUBJECT: CUSTOM EVOLUTION.<br>SEND CODE BELOW.";
+
+                const text = `- **🎓 Buai Academy Club Reg**\n> **Student:** ${finalName}\n> **Major:** ${selectedMajor.toUpperCase()}\n> **Club:** RESEARCH LABS (CLASSIFIED)\n> **Selection:** CUSTOM EVOLUTION REQUEST\n\n*Anomaly logged.*`;
+                document.getElementById('reddit-code').textContent = text;
+            } else {
+                resultBox.classList.remove('secret-mode');
+                title.textContent = "🎉 Club Registration Confirmed!";
+                desc.textContent = "Copy this code and paste it into the Reddit thread:";
+                secretWarning.style.display = 'none';
+
+                const bonusText = CLUBS[selectedClub].bonusText;
+                
+                const text = `- **🎓 Buai Academy Club Reg**\n> **Student:** ${finalName}\n> **Major:** ${selectedMajor.toUpperCase()}\n> **Club:** ${selectedClub}\n> **Bonus:** ${bonusText}\n> **Member:** ${pokemon.name.toUpperCase()}\n\n*Signed up!*`;
+                document.getElementById('reddit-code').textContent = text;
+            }
+        }
+
+        function copyCode() {
+            const text = document.getElementById('reddit-code').textContent;
+            navigator.clipboard.writeText(text).then(() => alert("Copied!"));
+        }
+
+        function getTypeColor(type) {
+            const colors = {
+                fire: '#F08030', water: '#6890F0', grass: '#78C850', electric: '#F8D030',
+                ice: '#98D8D8', fighting: '#C03028', poison: '#A040A0', ground: '#E0C068',
+                flying: '#A890F0', psychic: '#F85888', bug: '#A8B820', rock: '#B8A038',
+                ghost: '#705898', dragon: '#7038F8', steel: '#B8B8D0', dark: '#705848',
+                fairy: '#EE99AC', normal: '#A8A878'
+            };
+            return colors[type] || '#333';
+        }
+    </script>
+</body>
+</html>
