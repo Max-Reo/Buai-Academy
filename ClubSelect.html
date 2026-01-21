@@ -72,7 +72,7 @@
         /* SECTIONS */
         #step-1-major, #step-2-club, #step-3-reveal, #step-4-result {
             width: 100%;
-            max-width: 1000px;
+            max-width: 1200px; 
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -116,6 +116,8 @@
             transition: transform 0.3s, background 0.3s;
             opacity: 0; 
             transform: translateY(20px);
+            position: relative;
+            overflow: hidden;
         }
 
         .pokemon-card.visible { opacity: 1; transform: translateY(0); }
@@ -125,6 +127,12 @@
             border-color: var(--gold);
             background: linear-gradient(135deg, #2c0404 0%, #3e0000 100%);
             box-shadow: 0 0 15px var(--gold);
+        }
+
+        /* Shiny Sparkle Effect */
+        .shiny-bg {
+            background: radial-gradient(circle at center, rgba(255,215,0,0.1) 0%, rgba(0,0,0,0) 70%);
+            border-color: #ffd700;
         }
 
         .pokemon-card img {
@@ -185,6 +193,26 @@
             margin: 15px 0;
             animation: pulse 2s infinite;
         }
+        
+        /* TOURNAMENT SCOUT ANIMATION */
+        .tournament-alert {
+            background-color: #d35400;
+            color: #fff;
+            font-weight: bold;
+            font-size: 1.1rem;
+            border: 3px solid #f1c40f;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 12px;
+            text-transform: uppercase;
+            box-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
+            animation: scoutFlash 0.8s ease-in-out infinite alternate;
+        }
+
+        @keyframes scoutFlash {
+            0% { transform: scale(1); box-shadow: 0 0 10px #d35400; border-color: #f1c40f; }
+            100% { transform: scale(1.02); box-shadow: 0 0 30px #f39c12; border-color: #fff; }
+        }
 
         .code-box {
             background: #000;
@@ -215,7 +243,7 @@
         button.action-btn:hover { background: #d35400; }
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
+        @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
     </style>
 </head>
 <body>
@@ -270,37 +298,44 @@
                 desc: "Nutrition & Health.",
                 bonusText: "+20 Base HP",
                 check: (stats) => stats.hp >= 50, 
-                getDisplay: (stats) => `HP: ${stats.hp} + 20`
+                getDisplay: (poke) => `HP: ${poke.stats.hp} + 20`
             },
             "Martial Arts Club": {
                 desc: "Strength Training.",
                 bonusText: "+20 Base Atk",
                 check: (stats) => stats.attack >= 50,
-                getDisplay: (stats) => `Atk: ${stats.attack} + 20`
+                getDisplay: (poke) => `Atk: ${poke.stats.attack} + 20`
             },
-            "Games Club": {
-                desc: "Tactical Defense.",
+            "Hiking Club": { 
+                desc: "Endurance & Stamina.",
                 bonusText: "+20 Base Def",
                 check: (stats) => stats.defense >= 50,
-                getDisplay: (stats) => `Def: ${stats.defense} + 20`
+                getDisplay: (poke) => `Def: ${poke.stats.defense} + 20`
+            },
+            "Gaming Club": { 
+                desc: "Randomized Boosts.",
+                bonusText: "+25 Random Stat",
+                check: (stats) => true,
+                isGaming: true, 
+                getDisplay: (poke) => `${poke.gamingStat}: ${poke.stats[poke.gamingKey]} + 25`
             },
             "Music Club": {
                 desc: "Special Arts.",
                 bonusText: "+20 Base SpA",
                 check: (stats) => stats["special-attack"] >= 50,
-                getDisplay: (stats) => `SpA: ${stats["special-attack"]} + 20`
+                getDisplay: (poke) => `SpA: ${poke.stats["special-attack"]} + 20`
             },
             "Art Club": {
                 desc: "Mental Resilience.",
                 bonusText: "+20 Base SpD",
                 check: (stats) => stats["special-defense"] >= 50,
-                getDisplay: (stats) => `SpD: ${stats["special-defense"]} + 20`
+                getDisplay: (poke) => `SpD: ${poke.stats["special-defense"]} + 20`
             },
             "Sports Club": {
                 desc: "Agility Training.",
                 bonusText: "+20 Base Speed",
                 check: (stats) => stats.speed >= 50,
-                getDisplay: (stats) => `Spe: ${stats.speed} + 20`
+                getDisplay: (poke) => `Spe: ${poke.stats.speed} + 20`
             },
             "Dance Club": {
                 desc: "Move Tutor.",
@@ -308,18 +343,31 @@
                 check: (stats) => stats.speed >= 50,
                 getDisplay: () => "Bonus: Dance Move"
             },
+            "Fashion Club": { 
+                desc: "Wear fashionable items.",
+                bonusText: "Fashionable Wear",
+                check: () => true,
+                getDisplay: () => "Bonus: Fashion Item",
+                isFashion: true 
+            },
+            "Gambling Club": { 
+                desc: "High Stakes.",
+                bonusText: "High Stakes",
+                check: () => true,
+                getDisplay: () => "Roll: High Stakes",
+                batchSize: 6 
+            },
             "Library Club": {
                 desc: "Knowledge Buff.",
-                bonusText: "+10 SpA & +10 SpD", // UPDATED
+                bonusText: "+10 SpA & +10 SpD",
                 check: (stats) => stats["special-attack"] >= 50,
-                getDisplay: (stats) => `SpA:${stats["special-attack"]}+10 | SpD:${stats["special-defense"]}+10` // UPDATED
+                getDisplay: (poke) => `SpA:${poke.stats["special-attack"]}+10 | SpD:${poke.stats["special-defense"]}+10`
             },
             "Research Labs": {
-                desc: "Evolved Pokémon Only.", 
-                bonusText: "Obscene Evolution Method",
-                // Validation happens in getValidPokemonForClub
+                desc: "Overall Boost.", 
+                bonusText: "+5 All Stats",
                 check: () => true, 
-                getDisplay: () => "Status: Fully Evolved",
+                getDisplay: (poke) => `BST: ${Object.values(poke.stats).reduce((a,b)=>a+b,0)} + 30`,
                 hasSecret: true
             }
         };
@@ -395,8 +443,11 @@
             try {
                 const results = [];
                 const usedIds = new Set(); 
+                
+                // Get Batch Size (Default 3, Gambling Club 6)
+                const count = CLUBS[clubName].batchSize || 3;
 
-                for(let i=0; i<3; i++) {
+                for(let i=0; i < count; i++) {
                     const poke = await getValidPokemonForClub(selectedMajor, selectedClub, usedIds);
                     if(poke) {
                         results.push(poke);
@@ -410,7 +461,7 @@
                         results.push({
                             name: "Custom Evolution",
                             sprites: { front_default: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dubious-disc.png" },
-                            stats: {},
+                            stats: { hp:0, attack:0, defense:0, "special-attack":0, "special-defense":0, speed:0 },
                             isSecret: true
                         });
                     }
@@ -476,33 +527,32 @@
 
                     const chainRes = await fetch(speciesData.evolution_chain.url);
                     const chainData = await chainRes.json();
-
+                    
                     // --- EVOLUTION STATUS CHECK ---
-                    // 0 = Final/Single Stage (Does not evolve further)
-                    // 1 = Base Stage (Can evolve)
-                    // 2 = Middle Stage (Can evolve)
                     const evoStatus = checkEvolutionStatus(chainData.chain, candidate.name);
                     
-                    const isResearch = (club === "Research Labs");
-
-                    if (isResearch) {
-                        // Research Labs Requirements:
-                        // 1. MUST be Final Stage (evoStatus == 0)
-                        // 2. MUST have evolved from something (Not a Basic/Single stage)
-                        
-                        // Check if it's Final
-                        if (evoStatus !== 0) continue; 
-
-                        // Check if it has a pre-evolution (API provides this)
-                        if (!speciesData.evolves_from_species) continue;
-
-                    } else {
-                        // All Other Clubs: MUST BE Evolvable (Status 1 or 2)
-                        // This bans final stages and single stages
+                    // Standard: Must be evolvable (bans single/final)
+                    // Research Labs: Speed optimization - removed strict filter, allows any valid non-legendary.
+                    if (club !== "Research Labs") {
                         if (evoStatus === 0) continue; 
                     }
 
-                    // Store formatted stats back into object
+                    // --- GAMING CLUB RANDOMIZER ---
+                    if (CLUBS[club].isGaming) {
+                        const statKeys = ["hp", "attack", "defense", "special-attack", "special-defense", "speed"];
+                        const statNames = { "hp": "HP", "attack": "Atk", "defense": "Def", "special-attack": "SpA", "special-defense": "SpD", "speed": "Spe" };
+                        const randomKey = statKeys[Math.floor(Math.random() * statKeys.length)];
+                        detailData.gamingKey = randomKey;
+                        detailData.gamingStat = statNames[randomKey];
+                    }
+
+                    // --- FASHION CLUB SHINY ROLL ---
+                    if (CLUBS[club].isFashion) {
+                        if (Math.random() <= 0.1) { // 1/10 Chance
+                            detailData.isShiny = true;
+                        }
+                    }
+
                     detailData.stats = stats; 
 
                     pokemonDetails = detailData;
@@ -523,14 +573,14 @@
             return pokemonDetails;
         }
 
-        // Returns: 0 (Invalid/Final/Single), 1 (Valid Base), 2 (Valid Middle)
+        // Returns: 0 (Final/Single), 1 (Valid Base/Middle)
         function checkEvolutionStatus(chainLink, targetName) {
             const currentName = chainLink.species.name;
             const evolvesTo = chainLink.evolves_to;
 
             if (currentName === targetName) {
-                if (evolvesTo.length > 0) return 1; // It Evolves
-                return 0; // It is Final
+                if (evolvesTo.length > 0) return 1; 
+                return 0; 
             }
             for (let child of evolvesTo) {
                 const status = checkEvolutionStatus(child, targetName);
@@ -541,24 +591,30 @@
         function createCard(pokemon, index) {
             const div = document.createElement('div');
             div.className = 'pokemon-card';
-            if (pokemon.isSecret) div.classList.add('secret-card');
             
-            div.style.transitionDelay = `${index * 150}ms`;
+            if (pokemon.isSecret) div.classList.add('secret-card');
+            if (pokemon.isShiny) div.classList.add('shiny-bg');
+            
+            div.style.transitionDelay = `${index * 100}ms`;
             div.onclick = () => selectPokemon(pokemon);
 
             let subtext = "";
-            let imgSrc = pokemon.sprites.front_default;
+            let imgSrc = pokemon.isShiny ? pokemon.sprites.front_shiny : pokemon.sprites.front_default;
             
             if (pokemon.isSecret) {
                 subtext = "<strong>⚠️ ANOMALY</strong>";
             } else {
-                subtext = CLUBS[selectedClub].getDisplay(pokemon.stats);
+                subtext = CLUBS[selectedClub].getDisplay(pokemon);
             }
+
+            // Shiny Indicator Text
+            let nameDisplay = pokemon.name.replace(/-/g, ' ');
+            if (pokemon.isShiny) nameDisplay = `✨ ${nameDisplay} ✨`;
 
             div.innerHTML = `
                 <span class="club-badge">${selectedClub}</span>
                 <img src="${imgSrc || ''}" alt="${pokemon.name}">
-                <h3>${pokemon.name.replace(/-/g, ' ')}</h3>
+                <h3>${nameDisplay}</h3>
                 <div class="stat-badge">${subtext}</div>
             `;
 
@@ -579,25 +635,52 @@
             const desc = document.getElementById('result-desc');
             const secretWarning = document.getElementById('secret-warning');
 
+            // Reset classes
+            resultBox.className = '';
+            secretWarning.style.display = 'none';
+            secretWarning.className = 'secret-instruction'; // Reset style
+            secretWarning.innerHTML = ""; // Reset text
+
             if (pokemon.isSecret) {
+                // --- SECRET RESEARCH LABS EVENT ---
                 resultBox.classList.add('secret-mode');
                 title.textContent = "⚠️ RESEARCH BREACH";
                 desc.textContent = "Do not share the code publicly.";
                 
                 secretWarning.style.display = 'block';
-                secretWarning.className = 'secret-instruction';
                 secretWarning.innerHTML = "CONTACT u/Azerkerking IMMEDIATELY.<br>SUBJECT: CUSTOM EVOLUTION.<br>SEND CODE BELOW.";
 
                 const text = `- **🎓 Buai Academy Club Reg**\n> **Student:** ${finalName}\n> **Major:** ${selectedMajor.toUpperCase()}\n> **Club:** RESEARCH LABS (CLASSIFIED)\n> **Selection:** CUSTOM EVOLUTION REQUEST\n\n*Anomaly logged.*`;
                 document.getElementById('reddit-code').textContent = text;
+            
             } else {
+                // --- NORMAL SELECTION ---
                 resultBox.classList.remove('secret-mode');
                 title.textContent = "🎉 Club Registration Confirmed!";
                 desc.textContent = "Copy this code and paste it into the Reddit thread:";
-                secretWarning.style.display = 'none';
 
-                const bonusText = CLUBS[selectedClub].bonusText;
+                let bonusText = CLUBS[selectedClub].bonusText;
                 
+                // Specific Text Updates for dynamic clubs
+                if (CLUBS[selectedClub].isGaming) {
+                    bonusText = `+25 ${pokemon.gamingStat}`;
+                }
+                if (pokemon.isShiny) {
+                    bonusText += " (SHINY)";
+                }
+
+                // --- SPORTS CLUB TOURNAMENT SCOUT (50% Chance) ---
+                if (selectedClub === "Sports Club") {
+                    if (Math.random() <= 0.5) {
+                        // Visual Alert - "Eye Flash"
+                        secretWarning.style.display = 'block';
+                        secretWarning.className = 'tournament-alert'; 
+                        secretWarning.innerHTML = "👁️ <strong>SCOUTED FOR TOURNAMENT</strong> 👁️<br>CONTACT u/CarsAttack7 for Tournament Details!";
+                        
+                        // NOTE: Text removed from copy/paste string as requested
+                    }
+                }
+
                 const text = `- **🎓 Buai Academy Club Reg**\n> **Student:** ${finalName}\n> **Major:** ${selectedMajor.toUpperCase()}\n> **Club:** ${selectedClub}\n> **Bonus:** ${bonusText}\n> **Member:** ${pokemon.name.toUpperCase()}\n\n*Signed up!*`;
                 document.getElementById('reddit-code').textContent = text;
             }
