@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buai Battle System: 4th Exam Playtest</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+            --warning: #f1c40f;
+            --dark: #2c3e50;
+            --buff: #9b59b6;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: #ecf0f1; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        
+        /* Layout */
+        .battle-arena { display: flex; gap: 20px; width: 100%; max-width: 800px; justify-content: center; align-items: flex-end; margin-bottom: 20px; }
+        .pokemon-card { background: white; border-radius: 12px; padding: 20px; width: 200px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; position: relative; cursor: pointer; transition: transform 0.2s; overflow: hidden; }
+        .pokemon-card:hover { transform: translateY(-5px); }
+        .pokemon-card img { width: 100px; height: 100px; object-fit: contain; }
+        
+        /* Stat Overlay */
+        .stat-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 0.9em; font-weight: bold; color: var(--dark); z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+        .pokemon-card.show-stats .stat-overlay { opacity: 1; pointer-events: auto; }
+        .stat-row { display: flex; justify-content: space-between; width: 80%; margin: 2px 0; border-bottom: 1px solid #eee; }
+        
+        /* Bars & Tags */
+        .stat-box { font-size: 0.9em; color: #7f8c8d; margin-top: 10px; }
+        .hp-bar-bg { background: #eee; height: 10px; border-radius: 5px; margin: 10px 0 5px; overflow: hidden; }
+        .hp-bar-fill { background: var(--success); height: 100%; width: 100%; transition: width 0.5s ease-out; }
+        .buff-tag { color: var(--buff); font-weight: bold; font-size: 0.8em; animation: pop 0.3s; }
+
+        /* Controls */
+        .control-panel { background: white; width: 100%; max-width: 600px; border-radius: 12px; padding: 20px; box-shadow: 0 -4px 20px rgba(0,0,0,0.05); text-align: center; }
+        .move-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .btn-move { color: white; border: none; padding: 15px; font-size: 1em; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-attack { background: var(--primary); }
+        .btn-buff { background: var(--buff); }
+        .btn-move:hover { opacity: 0.9; transform: translateY(-2px); }
+        .btn-move:disabled { background: #bdc3c7; cursor: not-allowed; transform: none; }
+
+        /* Dice Stage */
+        .dice-stage { height: 150px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin-bottom: 15px; }
+        .instruction { font-size: 0.9em; color: #7f8c8d; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* Dice Visualization */
+        .die { width: 80px; height: 80px; display: flex; justify-content: center; align-items: center; font-size: 1.5em; font-weight: bold; cursor: pointer; user-select: none; transition: transform 0.1s; border-radius: 12px; box-shadow: 0 4px 0 rgba(0,0,0,0.2); position: relative; }
+        .die:active { transform: translateY(4px); box-shadow: 0 0 0 rgba(0,0,0,0.2); }
+        .die-d20 { background: var(--dark); color: white; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); width: 90px; height: 100px; border-radius: 0; }
+        .die-d12 { background: var(--danger); color: white; clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%); width: 90px; height: 90px; border-radius: 0; }
+        .rolling { animation: rumble 0.2s infinite; }
+
+        /* Log */
+        .battle-log { background: #f8f9fa; border: 1px solid #ddd; height: 120px; overflow-y: auto; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 0.85em; text-align: left; margin-top: 15px; }
+        .log-entry { margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 2px; }
+        .crit-text { color: var(--warning); font-weight: bold; text-shadow: 1px 1px 0 #000; }
+        .miss-text { color: var(--danger); font-weight: bold; }
+        .buff-text { color: var(--buff); font-weight: bold; }
+        .calc-text { color: #7f8c8d; font-size: 0.8em; display: block; }
+        .hidden { display: none !important; }
+
+        @keyframes rumble { 0% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } 100% { transform: rotate(-5deg); } }
+        @keyframes pop { 0% { transform: scale(0.5); } 80% { transform: scale(1.2); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+    <div class="battle-arena">
+        <div class="pokemon-card" id="mew-card" onclick="toggleStats('mew')">
+            <h3 id="mew-name">Mew</h3>
+            <img id="mew-img" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/151.png" alt="Mew">
+            <div class="hp-bar-bg"><div class="hp-bar-fill" id="mew-hp-bar"></div></div>
+            <div class="stat-box">HP: <span id="mew-hp-text">25/25</span></div>
+            <div class="stat-box" style="color:var(--primary)">ATK: <span id="mew-atk-display">10</span> <span id="mew-buff-tag" class="buff-tag hidden">(+0)</span></div>
+            <div class="stat-box" style="font-size:0.7em">(Click for Stats)</div>
+            
+            <div class="stat-overlay">
+                <div style="margin-bottom:10px; color:var(--primary)">MEW STATS</div>
+                <div class="stat-row"><span>HP</span><span>25</span></div>
+                <div class="stat-row"><span>ATK</span><span id="mew-real-atk">10</span></div>
+                <div class="stat-row"><span>DEF</span><span>10</span></div>
+                <div class="stat-row"><span>SPA</span><span>10</span></div>
+                <div class="stat-row"><span>SPD</span><span>10</span></div>
+                <div class="stat-row"><span>SPE</span><span>10</span></div>
+            </div>
+        </div>
+
+        <div class="pokemon-card" id="probo-card" onclick="toggleStats('probo')">
+            <h3 id="probo-name">Probopass</h3>
+            <img id="probo-img" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/476.png" alt="Probopass">
+            <div class="hp-bar-bg"><div class="hp-bar-fill" id="probo-hp-bar"></div></div>
+            <div class="stat-box">HP: <span id="probo-hp-text">17/17</span></div>
+            <div class="stat-box" style="color:var(--danger)">DEF: 15</div>
+            <div class="stat-box" style="font-size:0.7em">(Click for Stats)</div>
+
+            <div class="stat-overlay">
+                <div style="margin-bottom:10px; color:var(--danger)">PROBOPASS STATS</div>
+                <div class="stat-row"><span>HP</span><span>17</span></div>
+                <div class="stat-row"><span>ATK</span><span>6</span></div>
+                <div class="stat-row"><span>DEF</span><span>15</span></div>
+                <div class="stat-row"><span>SPA</span><span>8</span></div>
+                <div class="stat-row"><span>SPD</span><span>15</span></div>
+                <div class="stat-row"><span>SPE</span><span>4</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="control-panel">
+        
+        <div id="dice-stage" class="dice-stage hidden">
+            <div id="dice-instruction" class="instruction">Click d20 to Roll</div>
+            <div id="die-d20" class="die die-d20" onclick="resolveAction()">
+                <span class="die-content">d20</span>
+            </div>
+            <div id="die-d12" class="die die-d12 hidden" onclick="resolveDamage()">
+                <span class="die-content">d12</span>
+            </div>
+        </div>
+
+        <div id="move-menu" class="move-grid">
+            <button class="btn-move btn-attack" onclick="selectMove('psychic_fangs')">
+                ⚔️ Psychic Fangs<br><span style="font-size:0.8em; opacity:0.8">85 BP | +3 Mod</span>
+            </button>
+            <button class="btn-move btn-buff" onclick="selectMove('swords_dance')">
+                ⚔️ Swords Dance<br><span style="font-size:0.8em; opacity:0.8">Boost Atk (+1 to +3)</span>
+            </button>
+        </div>
+
+        <div class="battle-log" id="log">
+            <div class="log-entry">Battle System Ready. Click a move.</div>
+        </div>
+    </div>
+
+<script>
+    // --- DATA ---
+    let mew = { 
+        name: "Mew", 
+        maxHp: 25, currentHp: 25, 
+        baseAtk: 10, currentAtk: 10, 
+        def: 10, spa: 10, spd: 10, spe: 10 
+    };
+    
+    let probo = { 
+        name: "Probopass", 
+        maxHp: 17, currentHp: 17, 
+        atk: 6, def: 15, spa: 8, spd: 15, spe: 4 
+    };
+
+    let gameState = {
+        phase: 'idle', // idle, rolling_acc, rolling_dmg
+        selectedMove: null
+    };
+
+    // --- UI FUNCTIONS ---
+    function toggleStats(target) {
+        const card = document.getElementById(`${target}-card`);
+        card.classList.toggle('show-stats');
+    }
+
+    function selectMove(moveKey) {
+        if(probo.currentHp <= 0) return log("Target KOed! Refresh to reset.");
+        
+        gameState.selectedMove = moveKey;
+        gameState.phase = 'rolling_acc';
+        
+        // UI Reset
+        document.getElementById('move-menu').classList.add('hidden');
+        document.getElementById('dice-stage').classList.remove('hidden');
+        document.getElementById('die-d20').classList.remove('hidden');
+        document.getElementById('die-d12').classList.add('hidden');
+        document.querySelector('#die-d20 .die-content').innerText = "d20";
+        
+        if(moveKey === 'swords_dance') {
+            document.getElementById('dice-instruction').innerText = "Roll d20 for Buff Chance";
+        } else {
+            document.getElementById('dice-instruction').innerText = "Roll d20 for Accuracy";
+        }
+    }
+
+    function resolveAction() {
+        if(gameState.phase !== 'rolling_acc') return;
+        
+        const die = document.getElementById('die-d20');
+        die.classList.add('rolling');
+
+        setTimeout(() => {
+            die.classList.remove('rolling');
+            const roll = Math.floor(Math.random() * 20) + 1;
+            die.querySelector('.die-content').innerText = roll;
+
+            // --- BRANCHING LOGIC ---
+            if (gameState.selectedMove === 'swords_dance') {
+                handleSwordsDance(roll);
+            } else {
+                handleAttackAcc(roll);
+            }
+        }, 500);
+    }
+
+    // --- SWORDS DANCE LOGIC ---
+    function handleSwordsDance(roll) {
+        let msg = "";
+        let boost = 0;
+
+        if (roll <= 5) {
+            msg = `<span class="miss-text">FAILED!</span> (Rolled ${roll}, needed 6+)`;
+        } else if (roll <= 10) {
+            boost = 1;
+            msg = `<span class="buff-text">SUCCESS! +1 Attack</span>`;
+        } else if (roll <= 19) {
+            boost = 2;
+            msg = `<span class="buff-text">GREAT SUCCESS! +2 Attack</span>`;
+        } else {
+            boost = 3;
+            msg = `<span class="crit-text">CRITICAL BUFF! +3 Attack</span>`;
+        }
+
+        log(`Swords Dance: ${msg}`);
+        
+        if (boost > 0) {
+            applyBuff(boost);
+        }
+        endTurn();
+    }
+
+    function applyBuff(amount) {
+        mew.currentAtk += amount;
+        // Cap at +6 (Base 10 + 6 = 16)
+        if (mew.currentAtk > 16) mew.currentAtk = 16;
+        
+        // Update UI
+        document.getElementById('mew-atk-display').innerText = mew.currentAtk;
+        document.getElementById('mew-real-atk').innerText = mew.currentAtk;
+        
+        const tag = document.getElementById('mew-buff-tag');
+        tag.innerText = `(+${mew.currentAtk - mew.baseAtk})`;
+        tag.classList.remove('hidden');
+    }
+
+    // --- ATTACK LOGIC ---
+    function handleAttackAcc(roll) {
+        // Psychic Fangs (100% Acc -> Miss on 5 or less)
+        if (roll <= 5) {
+            log(`Psychic Fangs: <span class="miss-text">MISS!</span> (Rolled ${roll})`, 'miss');
+            endTurn();
+        } else {
+            log(`Psychic Fangs: HIT! (Rolled ${roll})`);
+            gameState.phase = 'rolling_dmg';
+            document.getElementById('dice-instruction').innerText = "Click d12 for Damage";
+            setTimeout(() => {
+                document.getElementById('die-d20').classList.add('hidden');
+                document.getElementById('die-d12').classList.remove('hidden');
+            }, 800);
+        }
+    }
+
+    function resolveDamage() {
+        if(gameState.phase !== 'rolling_dmg') return;
+        
+        const die = document.getElementById('die-d12');
+        die.classList.add('rolling');
+
+        setTimeout(() => {
+            die.classList.remove('rolling');
+            const roll = Math.floor(Math.random() * 12) + 1;
+            die.querySelector('.die-content').innerText = roll;
+
+            // Damage Formula
+            const bpMod = 3; // 85 BP
+            let rawDmg = mew.currentAtk + roll + bpMod;
+            let finalDmg = 0;
+            let isCrit = (roll === 12);
+
+            if (isCrit) {
+                finalDmg = Math.floor(rawDmg * 1.5) - probo.def;
+                log(`<span class="crit-text">CRIT!</span> Nat 12! (+50% Bonus)`);
+            } else {
+                finalDmg = rawDmg - probo.def;
+            }
+
+            if (finalDmg < 1) finalDmg = 1;
+
+            log(`Dealt <b>${finalDmg} Damage</b> to Probopass.`);
+            log(`<span class="calc-text">(${mew.currentAtk} Atk + ${roll} Roll + ${bpMod} Mod) - ${probo.def} Def</span>`);
+
+            // Apply Damage
+            probo.currentHp -= finalDmg;
+            if (probo.currentHp < 0) probo.currentHp = 0;
+            updateHpBar();
+            
+            endTurn();
+        }, 500);
+    }
+
+    function endTurn() {
+        setTimeout(() => {
+            gameState.phase = 'idle';
+            gameState.selectedMove = null;
+            document.getElementById('dice-stage').classList.add('hidden');
+            document.getElementById('move-menu').classList.remove('hidden');
+            
+            // Re-render stats in case they changed
+            document.getElementById('die-d12').querySelector('.die-content').innerText = 'd12';
+        }, 2500);
+    }
+
+    function updateHpBar() {
+        const pct = (probo.currentHp / probo.maxHp) * 100;
+        const bar = document.getElementById('probo-hp-bar');
+        const text = document.getElementById('probo-hp-text');
+        
+        bar.style.width = pct + "%";
+        text.innerText = `${probo.currentHp}/${probo.maxHp}`;
+        
+        if(pct < 30) bar.style.backgroundColor = '#e74c3c';
+        else if(pct < 60) bar.style.backgroundColor = '#f1c40f';
+    }
+
+    function log(msg, type) {
+        const box = document.getElementById('log');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        if(type==='miss') entry.style.borderLeft = "3px solid var(--danger)";
+        entry.innerHTML = msg;
+        box.prepend(entry);
+    }
+</script>
+</body>
+</html>
