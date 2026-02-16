@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Buai Battle</title>
+    <style>
+        :root {
+            --primary: #e3350d;
+            --secondary: #2980b9;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --success: #27ae60;
+            --warn: #f39c12;
+            --danger: #c0392b;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Segoe UI', sans-serif; background: #222; margin: 0; padding: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* LAYOUT */
+        .screen { display: none; height: 100%; flex-direction: column; background: var(--light); width: 100%; position: relative; }
+        .screen.active { display: flex; }
+        
+        /* PHASE 1: TEAM */
+        .search-bar { padding: 10px; background: var(--dark); display: flex; gap: 8px; align-items: center; }
+        .search-bar input { padding: 10px; border-radius: 5px; border: none; flex: 1; font-size: 16px; }
+        .dex-btn { background: var(--secondary); color: white; padding: 10px; min-width: 60px; border-radius:5px; border:none; font-weight:bold; }
+        .add-btn { background: var(--success); color: white; padding: 10px; min-width: 60px; border-radius:5px; border:none; font-weight:bold; }
+
+        .team-container { display: flex; gap: 8px; padding: 15px 5px; justify-content: center; background: #dfe6e9; overflow-x: auto; }
+        .team-slot { min-width: 100px; height: 130px; border: 2px dashed #b2bec3; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: white; position: relative; }
+        .team-slot.filled { border: 2px solid var(--primary); border-style: solid; }
+        .team-slot img { width: 80px; height: 80px; object-fit: contain; }
+        .team-slot b { font-size: 0.75rem; text-align: center; margin-top: -5px; }
+        .remove-btn { position: absolute; top: -8px; right: -8px; background: var(--primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; z-index: 5; }
+
+        .btn-confirm { margin: auto; margin-bottom: 20px; width: 90%; padding: 15px; background: var(--dark); color: white; font-size: 1rem; opacity: 0.5; border-radius: 5px; border:none; }
+
+        /* DEX MODAL */
+        .dex-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000; flex-direction: column; }
+        .dex-header { padding: 15px; background: var(--dark); color: white; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .dex-tabs { display: flex; overflow-x: auto; padding: 10px; gap: 10px; background: #eee; }
+        .dex-tab { padding: 8px 15px; background: white; border-radius: 20px; white-space: nowrap; border: 1px solid #ccc; font-size: 0.8rem; }
+        .dex-tab.active { background: var(--secondary); color: white; border-color: var(--secondary); }
+        .dex-grid { flex: 1; overflow-y: auto; padding: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; align-content: start; }
+        .dex-item { display: flex; flex-direction: column; align-items: center; border: 1px solid #eee; padding: 5px; border-radius: 5px; }
+
+        /* PHASE 2: MOVES */
+        .move-browser { flex: 1; overflow-y: auto; padding: 10px; background: #f9f9f9; padding-bottom: 80px; }
+        .move-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px; margin-bottom: 8px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .btn-launch { position: absolute; bottom: 20px; right: 20px; background: var(--success); color: white; padding: 15px 25px; border-radius: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 100; border:none; font-weight: bold; font-size: 1.1rem; }
+
+        /* PHASE 3: DUNGEON */
+        .battle-stage { height: 50%; background: linear-gradient(180deg, #81ecec 0%, #dfe6e9 100%); position: relative; overflow: hidden; }
+        
+        .battler { position: absolute; width: 140px; text-align: center; transition: transform 0.2s; }
+        .battler img { width: 100%; height: 120px; object-fit: contain; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.3)); }
+        
+        #p-battler { bottom: 10px; left: 20px; z-index: 10; }
+        #p-battler img { transform: scale(1.2); } 
+        #e-battler { top: 40px; right: 30px; z-index: 5; }
+        #e-battler img { transform: scale(0.9); } 
+
+        .stat-overlay { position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.95); color: white; padding: 8px; border-radius: 8px; width: 170px; display: none; z-index: 100; text-align: left; font-size: 0.75rem; pointer-events: none; border: 1px solid #7f8c8d; }
+        .stat-overlay::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: rgba(0,0,0,0.95) transparent transparent transparent; }
+        .stat-overlay.visible { display: block; }
+        
+        .battler-hud { background: rgba(255,255,255,0.9); padding: 5px 8px; border-radius: 8px; margin-top: 5px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border: 1px solid #bdc3c7; }
+        .hp-bar-bg { width: 100%; height: 6px; background: #bdc3c7; border-radius: 3px; margin: 4px 0; overflow: hidden; }
+        .hp-bar-fill { height: 100%; width: 100%; background: var(--success); transition: width 0.3s ease-out; }
+        
+        /* ANIMATION FX LAYER */
+        .fx-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; overflow: hidden; }
+        .fx-emoji { position: absolute; font-size: 3rem; opacity: 0; }
+        
+        /* Projectile Animations */
+        @keyframes shoot-player { 0% { opacity: 1; left: 20%; bottom: 20%; transform: scale(0.5); } 100% { opacity: 0; left: 70%; bottom: 60%; transform: scale(2); } }
+        @keyframes shoot-enemy { 0% { opacity: 1; left: 70%; bottom: 60%; transform: scale(0.5); } 100% { opacity: 0; left: 20%; bottom: 20%; transform: scale(2); } }
+        /* Self Buff Animation */
+        @keyframes buff-anim { 0% { opacity: 0; transform: translateY(0) scale(0.5); } 50% { opacity: 1; transform: translateY(-30px) scale(1.5); } 100% { opacity: 0; transform: translateY(-60px) scale(1); } }
+        /* Miss Animation */
+        @keyframes miss-anim { 0% { opacity: 1; transform: scale(1); } 50% { transform: scale(1.5); } 100% { opacity: 0; transform: scale(0.5); } }
+
+        .anim-player { animation: shoot-player 1.5s ease-out forwards; }
+        .anim-enemy { animation: shoot-enemy 1.5s ease-out forwards; }
+        .anim-self { animation: buff-anim 1.5s ease-out forwards; }
+        .anim-miss { position: absolute; left: 50%; top: 50%; font-size: 4rem; animation: miss-anim 1s ease-out forwards; }
+
+        .control-panel { height: 50%; background: white; display: flex; flex-direction: column; border-top: 2px solid var(--dark); }
+        .log-box { height: 30%; background: #f1f2f6; overflow-y: auto; padding: 10px; font-family: monospace; font-size: 0.8rem; border-bottom: 1px solid #dfe4ea; }
+        .move-grid { height: 70%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; align-content: start; }
+        
+        .btn-move { background: white; border: 1px solid #ced6e0; border-radius: 6px; padding: 10px; text-align: left; position: relative; transition: 0.1s; }
+        .btn-move:active { background: #eee; transform: translateY(2px); }
+        .btn-move:disabled { opacity: 0.6; background: #eee; }
+
+        /* DICE LAYER */
+        .dice-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 900; display: none; flex-direction: column; justify-content: center; align-items: center; color: white; }
+        .dice-modal.active { display: flex; }
+        .die { width: 120px; height: 120px; display: flex; justify-content: center; align-items: center; font-size: 3rem; font-weight: bold; background: var(--dark); border-radius: 20px; margin-bottom: 20px; cursor: pointer; user-select: none; }
+        .die.d20 { background: var(--dark); clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+        .die.d12 { background: var(--primary); clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%); }
+        .die.rolling { animation: shake 0.1s infinite; pointer-events: none; }
+        @keyframes shake { 0% { transform: rotate(0deg); } 25% { transform: rotate(15deg); } 75% { transform: rotate(-15deg); } }
+
+        /* SWITCH MODAL */
+        .switch-modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:950; justify-content:center; align-items:center; }
+        .switch-content { background: white; padding: 20px; border-radius: 10px; width: 85%; max-width: 300px; text-align: center; }
+        .switch-btn { width: 100%; padding: 15px; background: #f1f2f6; margin-bottom: 10px; text-align: left; border-radius: 5px; font-weight: bold; border: 1px solid #ccc; }
+        .switch-btn:disabled { opacity: 0.5; }
+
+    </style>
+</head>
+<body>
+
+<div id="screen-team" class="screen active">
+    <h2 style="text-align:center; padding-top:10px;">Buai Battle</h2>
+    <div class="search-bar">
+        <button class="dex-btn" onclick="openPokedex()">Dex</button>
+        <input type="text" id="poke-search" placeholder="Name (e.g. Mudkip)">
+        <button class="add-btn" onclick="searchPokemon()">Add</button>
+    </div>
+    <div class="team-container" id="team-grid"></div>
+    <button id="btn-team-done" class="btn-confirm" onclick="toPhase2()" disabled>Customize Moves</button>
+</div>
+
+<div id="dex-modal" class="dex-modal">
+    <div class="dex-header"><span>Pokédex Browser</span><button onclick="closePokedex()" style="background:none;color:white;border:none;font-size:1.5rem;">×</button></div>
+    <div class="dex-tabs" id="dex-tabs"></div>
+    <div class="dex-grid" id="dex-grid"></div>
+</div>
+
+<div id="screen-moves" class="screen">
+    <div id="roster-list" style="display:flex; gap:10px; padding:10px; overflow-x:auto; background:white; border-bottom:1px solid #ccc;"></div>
+    <div class="move-browser">
+        <h3 id="move-header" style="text-align:center; color:#7f8c8d;">Select Moves</h3>
+        <div id="move-list"></div>
+    </div>
+    <button id="btn-launch" class="btn-launch" onclick="toPhase3()" disabled>Enter Dungeon</button>
+</div>
+
+<div id="screen-dungeon" class="screen">
+    <div id="dice-layer" class="dice-modal">
+        <h2 id="dice-title">Roll</h2>
+        <div id="die-visual" class="die d20" onclick="rollDie()">d20</div>
+        <p id="dice-instr" style="color:white">Tap to Roll</p>
+    </div>
+
+    <div class="battle-stage">
+        <div id="fx-layer" class="fx-layer"></div>
+        <div class="battler" id="p-battler" onclick="toggleStats('p')">
+            <div class="stat-overlay" id="p-stats"></div>
+            <img id="p-img" src="">
+            <div class="battler-hud">
+                <div id="p-name">Player</div>
+                <div class="hp-bar-bg"><div class="hp-bar-fill" id="p-hp-bar"></div></div>
+                <div id="p-hp-text">0/0</div>
+            </div>
+        </div>
+        <div class="battler" id="e-battler" onclick="toggleStats('e')">
+            <div class="stat-overlay" id="e-stats"></div>
+            <img id="e-img" src="">
+            <div class="battler-hud">
+                <div id="e-name">Enemy</div>
+                <div class="hp-bar-bg"><div class="hp-bar-fill" id="e-hp-bar"></div></div>
+                <div id="e-hp-text">0/0</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="control-panel">
+        <div class="log-box" id="battle-log"></div>
+        <div class="move-grid" id="battle-menu"></div>
+    </div>
+</div>
+
+<div id="switch-modal" class="switch-modal">
+    <div class="switch-content">
+        <h3>Switch Pokémon</h3>
+        <div id="switch-list"></div>
+        <button id="btn-cancel-switch" onclick="closeSwitch()" style="width:100%; padding:10px; margin-top:10px; background:#e74c3c; color:white; border:none; border-radius:5px;">Cancel</button>
+    </div>
+</div>
+
+<script>
+    // --- DATA ---
+    const GEN_DATA = [ { name: "Gen 1", start: 1, end: 151 }, { name: "Gen 2", start: 152, end: 251 }, { name: "Gen 3", start: 252, end: 386 }, { name: "Gen 4", start: 387, end: 493 }, { name: "Gen 5", start: 494, end: 649 }, { name: "Gen 6", start: 650, end: 721 }, { name: "Gen 7", start: 722, end: 809 }, { name: "Gen 8", start: 810, end: 905 }, { name: "Gen 9", start: 906, end: 1025 } ];
+    const TYPE_EMOJIS = { normal: '💥', fire: '🔥', water: '💧', electric: '⚡', grass: '🍃', ice: '❄️', fighting: '👊', poison: '☠️', ground: '🏜️', flying: '🌪️', psychic: '🔮', bug: '🕸️', rock: '🪨', ghost: '👻', dragon: '🐉', steel: '🛡️', dark: '🌑', fairy: '✨' };
+
+    // --- STATE ---
+    let team = [];
+    let enemy = null;
+    let currentIdx = 0;
+    let floor = 1;
+    let isRolling = false;
+    let battle = { phase: 'idle', move: null, user: null, target: null };
+
+    class Pokemon {
+        constructor(data) {
+            this.name = data.name.charAt(0).toUpperCase() + data.name.slice(1);
+            this.sprite = data.sprites.front_default;
+            this.backSprite = data.sprites.back_default || this.sprite;
+            let s = {}; data.stats.forEach(st => s[st.stat.name] = st.base_stat);
+            this.maxHp = Math.floor(s.hp / 5) + 5;
+            this.currentHp = this.maxHp;
+            this.atk = Math.floor(s.attack / 10);
+            this.def = Math.floor(s.defense / 10);
+            this.spa = Math.floor(s['special-attack'] / 10);
+            this.spd = Math.floor(s['special-defense'] / 10);
+            this.spe = Math.floor(s.speed / 10);
+            this.apiMoves = data.moves; 
+            this.selectedMoves = [];
+            this.movePoolCache = null;
+            this.status = null; 
+            this.sleepTurns = 0;
+            this.stages = { atk:0, def:0, spa:0, spd:0, spe:0 };
+        }
+    }
+
+    // --- PHASE 1 & 2 (Simplified for brevity, logic identical to v5) ---
+    function openPokedex() { document.getElementById('dex-modal').style.display='flex'; if(document.getElementById('dex-tabs').innerHTML==="") { renderGenTabs(); loadGen(0); } }
+    function closePokedex() { document.getElementById('dex-modal').style.display='none'; }
+    function renderGenTabs() { const bar=document.getElementById('dex-tabs'); GEN_DATA.forEach((gen,idx)=>{ const b=document.createElement('div'); b.className=`dex-tab ${idx===0?'active':''}`; b.innerText=gen.name; b.onclick=()=>{ document.querySelectorAll('.dex-tab').forEach(t=>t.classList.remove('active')); b.classList.add('active'); loadGen(idx); }; bar.appendChild(b); }); }
+    function loadGen(idx) { const g=document.getElementById('dex-grid'); g.innerHTML='Loading...'; const r=GEN_DATA[idx]; setTimeout(()=>{ g.innerHTML=""; for(let i=r.start;i<=r.end;i++){ const d=document.createElement('div'); d.className="dex-item"; d.innerHTML=`<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${i}.png" loading="lazy"><span>${i}</span>`; d.onclick=()=>{fetchAndAdd(i);closePokedex();}; g.appendChild(d); } },50); }
+    function searchPokemon() { let v=document.getElementById('poke-search').value.toLowerCase(); if(v) fetchAndAdd(v); }
+    async function fetchAndAdd(q) { try{ const d=await fetch(`https://pokeapi.co/api/v2/pokemon/${q}`).then(r=>r.json()); team.push(new Pokemon(d)); renderTeam(); }catch(e){alert("Not Found");} }
+    function renderTeam() { document.getElementById('team-grid').innerHTML=team.map((p,i)=>`<div class="team-slot filled"><div class="remove-btn" onclick="team.splice(${i},1);renderTeam()">×</div><img src="${p.sprite}"><b>${p.name}</b></div>`).join(''); document.getElementById('btn-team-done').disabled=team.length===0; document.getElementById('btn-team-done').style.opacity=team.length>0?1:0.5; }
+    function toPhase2() { document.getElementById('screen-team').classList.remove('active'); document.getElementById('screen-moves').classList.add('active'); loadMovesFor(0); }
+    
+    async function loadMovesFor(idx) {
+        const p=team[idx]; document.getElementById('roster-list').innerHTML=team.map((t,i)=>`<div style="min-width:80px;padding:5px;border:2px solid ${i===idx?'#2980b9':'#eee'};border-radius:5px;text-align:center;" onclick="loadMovesFor(${i})"><b>${t.name}</b><br>${t.selectedMoves.length}/4</div>`).join('');
+        const list=document.getElementById('move-list'); list.innerHTML="Fetching...";
+        if(!p.movePoolCache) {
+            const mList=p.apiMoves.filter(m=>m.version_group_details[0].move_learn_method.name==='level-up').slice(-20);
+            const res=await Promise.all(mList.map(m=>fetch(m.move.url).then(r=>r.json())));
+            p.movePoolCache=res.map(parseMoveData);
+        }
+        list.innerHTML="";
+        p.movePoolCache.forEach(m=>{
+            const isSel=p.selectedMoves.includes(m);
+            const el=document.createElement('div'); el.className="move-item";
+            el.innerHTML=`<div><b>${m.name}</b> <span style="font-size:0.7rem;background:#eee;padding:2px;">${m.type}</span><br><small style="color:#666">${m.desc}</small></div><button onclick="toggleMove(${idx}, '${m.name}')" style="background:${isSel?'#c0392b':'#27ae60'};color:white;padding:8px;border-radius:5px;border:none;">${isSel?'Drop':'Get'}</button>`;
+            list.appendChild(el);
+        });
+        document.getElementById('btn-launch').disabled = !team.every(t=>t.selectedMoves.length>0);
+    }
+
+    function parseMoveData(data) {
+        let acc=data.accuracy?Math.floor(data.accuracy/10)*10:100;
+        let miss=4+((100-acc)/10);
+        let bp=data.power||0;
+        let mod=bp>0?1:0; if(bp>30) mod=2; if(bp>60) mod=3; if(bp>90) mod=4; if(bp>120) mod=5;
+        
+        let cat=data.damage_class.name;
+        let statChanges=null;
+        let target=data.target.name; // 'user', 'selected-pokemon'
+        
+        if(data.stat_changes.length>0) {
+            statChanges = {
+                stat: data.stat_changes[0].stat.name,
+                change: data.stat_changes[0].change
+            };
+        }
+
+        return {
+            name: data.name.charAt(0).toUpperCase()+data.name.slice(1),
+            type: data.type.name,
+            category: cat,
+            mod: mod,
+            acc: acc,
+            missRange: miss,
+            statChanges: statChanges,
+            target: target,
+            desc: cat==='status'?`Status | Miss 1-${miss}`:`+${mod} Mod | Miss 1-${miss}`
+        };
+    }
+    
+    function toggleMove(idx,name) { let p=team[idx]; let m=p.movePoolCache.find(x=>x.name===name); if(p.selectedMoves.includes(m)) p.selectedMoves=p.selectedMoves.filter(x=>x!==m); else if(p.selectedMoves.length<4) p.selectedMoves.push(m); loadMovesFor(idx); }
+    function toPhase3() { document.getElementById('screen-moves').classList.remove('active'); document.getElementById('screen-dungeon').classList.add('active'); initFloor(1); }
+
+    // --- DUNGEON ---
+    async function initFloor(n) {
+        floor=n; log(`Entered Floor ${floor}`);
+        if((floor-1)%5===0 && floor>1) team.forEach(t=>t.currentHp=t.maxHp);
+        let id=Math.floor(Math.random()*250)+1;
+        let d=await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r=>r.json());
+        enemy=new Pokemon(d);
+        enemy.selectedMoves=[{name:"Tackle", type:"normal", category:"physical", mod:1, missRange:4}, {name:"Leer", type:"normal", category:"status", mod:0, missRange:4, target:'selected-pokemon', statChanges:{stat:'defense', change:-1}}];
+        renderBattle();
+    }
+
+    function renderBattle() {
+        const p=team[currentIdx];
+        document.getElementById('p-img').src=p.backSprite; document.getElementById('p-name').innerText=p.name;
+        document.getElementById('p-hp-text').innerText=`${p.currentHp}/${p.maxHp}`; document.getElementById('p-hp-bar').style.width=`${(p.currentHp/p.maxHp)*100}%`;
+        document.getElementById('p-stats').innerHTML=getStatsHTML(p);
+
+        document.getElementById('e-img').src=enemy.sprite; document.getElementById('e-name').innerText=enemy.name;
+        document.getElementById('e-hp-text').innerText=`${enemy.currentHp}/${enemy.maxHp}`; document.getElementById('e-hp-bar').style.width=`${(enemy.currentHp/enemy.maxHp)*100}%`;
+        document.getElementById('e-stats').innerHTML=getStatsHTML(enemy);
+
+        const menu=document.getElementById('battle-menu'); menu.innerHTML="";
+        if(p.currentHp<=0) { handleFaint(); return; }
+        
+        p.selectedMoves.forEach(m=>{
+            let btn=document.createElement('button'); btn.className="btn-move";
+            btn.innerHTML=`<b>${m.name}</b> <span style="font-size:0.8rem">${TYPE_EMOJIS[m.type]||'⚪'}</span><br><small>${m.desc}</small>`;
+            btn.onclick=()=>playerTurn(m); menu.appendChild(btn);
+        });
+        let swBtn=document.createElement('button'); swBtn.className="btn-move"; swBtn.style.background="#fff3cd"; swBtn.innerHTML="<b>SWITCH</b>"; swBtn.onclick=()=>openSwitch(true); menu.appendChild(swBtn);
+    }
+
+    function getStatsHTML(p) {
+        const formatStat = (val, stage) => {
+            if(stage===0) return val;
+            let color = stage>0 ? '#2ecc71' : '#e74c3c';
+            let sign = stage>0 ? '+' : '';
+            return `${val} <span style="color:${color}">(${sign}${stage})</span>`;
+        };
+        return `<b>${p.name}</b><hr style="margin:5px 0; border:0; border-top:1px solid #555">
+        ATK: ${formatStat(p.atk, p.stages.atk)}<br>
+        DEF: ${formatStat(p.def, p.stages.def)}<br>
+        SPA: ${formatStat(p.spa, p.stages.spa)}<br>
+        SPD: ${formatStat(p.spd, p.stages.spd)}<br>
+        SPE: ${formatStat(p.spe, p.stages.spe)}`;
+    }
+
+    function toggleStats(who) { document.getElementById(`${who}-stats`).classList.toggle('visible'); }
+    function log(msg) { const b=document.getElementById('battle-log'); b.innerHTML=`<div>${msg}</div>`+b.innerHTML; }
+
+    // --- COMBAT LOGIC ---
+    function playerTurn(move) {
+        if(isRolling) return;
+        battle.user=team[currentIdx]; battle.target=enemy; battle.move=move;
+        openDice('d20', 'Accuracy'); battle.phase='acc';
+    }
+
+    function openDice(type, title) {
+        document.getElementById('dice-layer').classList.add('active');
+        document.getElementById('dice-title').innerText=title;
+        let d=document.getElementById('die-visual'); d.className=`die ${type}`; d.innerText=type;
+    }
+
+    function rollDie() {
+        if(isRolling) return; isRolling=true;
+        let die=document.getElementById('die-visual'); die.classList.add('rolling');
+        setTimeout(()=>{
+            die.classList.remove('rolling');
+            if(battle.phase==='acc') {
+                let res=Math.floor(Math.random()*20)+1; die.innerText=res;
+                setTimeout(()=>resolveAcc(res), 800);
+            } else {
+                let res=Math.floor(Math.random()*12)+1; die.innerText=res;
+                setTimeout(()=>resolveDmg(res), 800);
+            }
+        }, 500);
+    }
+
+    function resolveAcc(roll) {
+        const m=battle.move;
+        if(roll<=m.missRange) {
+            log(`${battle.user.name} Missed!`);
+            triggerAnim('miss', true);
+        } else {
+            // Success: Hide Dice immediately
+            closeDice();
+            
+            // Determine animation target
+            let isSelf = m.target === 'user';
+            let animType = isSelf ? 'self' : m.type;
+            
+            triggerAnim(animType, true);
+        }
+    }
+
+    function triggerAnim(type, isPlayer) {
+        const layer=document.getElementById('fx-layer');
+        const emoji=document.createElement('div');
+        
+        if(type==='miss') {
+            emoji.className=`fx-emoji anim-miss`; emoji.innerText="💨";
+            layer.appendChild(emoji);
+            setTimeout(()=>{ emoji.remove(); closeDice(); if(isPlayer) setTimeout(enemyTurn, 500); }, 1000);
+            return;
+        }
+
+        if(type==='self') {
+            emoji.className=`fx-emoji anim-self`; emoji.innerText="✨";
+            if(isPlayer) emoji.style.left="20%"; else emoji.style.left="70%"; 
+            emoji.style.bottom="20%"; 
+        } else {
+            emoji.className=`fx-emoji ${isPlayer?'anim-player':'anim-enemy'}`;
+            emoji.innerText=TYPE_EMOJIS[type]||'💥';
+        }
+        
+        layer.appendChild(emoji);
+
+        setTimeout(() => {
+            emoji.remove();
+            if(battle.move.category==='status') {
+                resolveStatusEffect();
+            } else if(isPlayer) {
+                battle.phase='dmg'; openDice('d12','Damage'); isRolling=false;
+            } else {
+                resolveDmgEnemy();
+            }
+        }, 1500);
+    }
+
+    function resolveStatusEffect() {
+        const m=battle.move;
+        const u=battle.user;
+        const t=m.target==='user'?battle.user:battle.target;
+        
+        if(m.statChanges) {
+            let sName = m.statChanges.stat;
+            let chg = m.statChanges.change;
+            
+            // Map API stat name to prop
+            let map = {'attack':'atk','defense':'def','special-attack':'spa','special-defense':'spd','speed':'spe'};
+            let key = map[sName];
+
+            if(key) {
+                t.stages[key] += chg;
+                if(t.stages[key] > 6) t.stages[key] = 6;
+                if(t.stages[key] < -6) t.stages[key] = -6;
+                let dir = chg>0?'rose':'fell';
+                log(`${t.name}'s ${key.toUpperCase()} ${dir}!`);
+            }
+        } else {
+            log("Status applied!");
+        }
+        renderBattle();
+        if(battle.user===team[currentIdx]) setTimeout(enemyTurn, 1000);
+    }
+
+    function resolveDmg(roll) {
+        const m=battle.move; const u=battle.user; const t=battle.target;
+        let atk=m.category==='physical'?u.atk:u.spa; let def=m.category==='physical'?t.def:t.spd;
+        let dmg=atk+roll+m.mod-def;
+        if(roll===12) dmg=Math.floor((atk+roll+m.mod)*1.5)-def;
+        if(dmg<1) dmg=1;
+
+        t.currentHp-=dmg; if(t.currentHp<0) t.currentHp=0;
+        log(`Dealt <b>${dmg}</b> dmg!`);
+        closeDice(); renderBattle();
+        
+        if(t.currentHp<=0) { log("Enemy Fainted!"); setTimeout(()=>initFloor(floor+1), 2000); }
+        else { setTimeout(enemyTurn, 1000); }
+    }
+
+    // --- ENEMY AI ---
+    function resolveDmgEnemy() {
+        const m=battle.move; const u=enemy; const t=team[currentIdx];
+        let roll=Math.floor(Math.random()*12)+1;
+        let atk=m.category==='physical'?u.atk:u.spa; let def=m.category==='physical'?t.def:t.spd;
+        let dmg=atk+roll+m.mod-def;
+        if(roll===12) dmg=Math.floor((atk+roll+m.mod)*1.5)-def;
+        if(dmg<1) dmg=1;
+
+        t.currentHp-=dmg; if(t.currentHp<0) t.currentHp=0;
+        log(`Enemy dealt ${dmg} dmg!`);
+        renderBattle();
+    }
+
+    function enemyTurn() {
+        if(enemy.currentHp<=0) return;
+        const m=enemy.selectedMoves[Math.floor(Math.random()*enemy.selectedMoves.length)];
+        battle.user=enemy; battle.target=team[currentIdx]; battle.move=m;
+        
+        log(`Enemy uses ${m.name}`);
+        let acc=Math.floor(Math.random()*20)+1;
+        
+        if(acc<=m.missRange) {
+            log("Enemy Missed!"); triggerAnim('miss', false);
+        } else {
+            let type = m.target==='user'?'self':m.type;
+            triggerAnim(type, false);
+        }
+    }
+
+    function closeDice() { document.getElementById('dice-layer').classList.remove('active'); isRolling=false; }
+    function handleFaint() { const alive=team.some(p=>p.currentHp>0); if(!alive) document.getElementById('battle-menu').innerHTML=`<button onclick="location.reload()" style="background:#c0392b;color:white;grid-column:span 2;padding:20px;">GAME OVER</button>`; else openSwitch(false); }
+    function openSwitch(canCancel) { const l=document.getElementById('switch-list'); l.innerHTML=""; team.forEach((p,i)=>{ if(i===currentIdx && p.currentHp>0) return; const b=document.createElement('button'); b.className="switch-btn"; b.innerHTML=`<b>${p.name}</b> (${p.currentHp}/${p.maxHp})`; if(p.currentHp>0) b.onclick=()=>doSwitch(i); else b.disabled=true; l.appendChild(b); }); document.getElementById('btn-cancel-switch').style.display=canCancel?'block':'none'; document.getElementById('switch-modal').style.display='flex'; }
+    function closeSwitch() { document.getElementById('switch-modal').style.display='none'; }
+    function doSwitch(idx) { closeSwitch(); currentIdx=idx; log(`Go! ${team[idx].name}!`); renderBattle(); }
+
+</script>
+</body>
+</html>
