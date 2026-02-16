@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buai Dungeon Crawler v2</title>
+    <style>
+        :root {
+            --primary: #e3350d; /* Pokemon Red */
+            --secondary: #3b4cca; /* Pokemon Blue */
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --success: #27ae60;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: #333; margin: 0; padding: 0; color: #333; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* GENERAL UI */
+        .screen { display: none; height: 100%; flex-direction: column; background: var(--light); position: relative; }
+        .screen.active { display: flex; }
+        h1, h2, h3 { margin: 10px 0; text-align: center; color: var(--dark); }
+        button { cursor: pointer; border: none; border-radius: 5px; font-weight: bold; transition: 0.2s; }
+        
+        /* PHASE 1: TEAM BUILDER */
+        .search-bar { padding: 20px; background: var(--dark); display: flex; justify-content: center; gap: 10px; }
+        .search-bar input { padding: 10px; border-radius: 5px; border: none; width: 250px; }
+        .search-bar button { background: var(--primary); color: white; padding: 10px 20px; }
+        
+        .team-container { display: flex; justify-content: center; gap: 20px; padding: 40px; flex-wrap: wrap; }
+        .team-slot { width: 160px; height: 220px; border: 3px dashed #bdc3c7; border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: white; position: relative; }
+        .team-slot.filled { border: 3px solid var(--secondary); border-style: solid; }
+        .team-slot img { width: 100px; height: 100px; object-fit: contain; }
+        .remove-btn { position: absolute; top: 5px; right: 5px; background: var(--primary); color: white; width: 25px; height: 25px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+
+        /* PHASE 2: MOVES */
+        .move-screen-layout { display: flex; height: 100%; }
+        .roster-sidebar { width: 250px; background: white; border-right: 1px solid #ddd; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .roster-card { padding: 15px; border: 2px solid #eee; border-radius: 8px; cursor: pointer; text-align: center; }
+        .roster-card.active { border-color: var(--secondary); background: #eef2ff; }
+        .move-browser { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        .move-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .move-stats { font-size: 0.85em; color: #7f8c8d; font-family: monospace; margin-top: 4px; display: block; }
+        .move-type-phys { color: #d35400; font-weight: bold; }
+        .move-type-spec { color: #2980b9; font-weight: bold; }
+
+        /* PHASE 3: DUNGEON */
+        .dungeon-top { height: 60%; position: relative; background: linear-gradient(to bottom, #74b9ff, #dfe6e9); display: flex; justify-content: space-around; align-items: flex-end; padding-bottom: 50px; }
+        
+        .battler { position: relative; width: 200px; text-align: center; cursor: pointer; transition: transform 0.2s; }
+        .battler:hover { transform: scale(1.05); }
+        .battler img { width: 180px; height: 180px; object-fit: contain; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.2)); }
+        
+        /* Stats Overlay on Battler */
+        .stat-bubble { position: absolute; top: -120px; left: 50%; transform: translateX(-50%); background: white; padding: 10px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); width: 180px; display: none; z-index: 100; text-align: left; font-size: 0.8em; pointer-events: none; }
+        .stat-bubble.visible { display: block; }
+        .stat-row { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 2px 0; }
+        
+        .hp-container { width: 100%; background: #bdc3c7; height: 10px; border-radius: 5px; margin-top: 10px; overflow: hidden; }
+        .hp-fill { height: 100%; background: var(--success); width: 100%; transition: width 0.3s ease; }
+
+        /* Combat Controls */
+        .dungeon-bot { height: 40%; background: white; border-top: 4px solid var(--dark); display: flex; }
+        .log-panel { width: 35%; background: #f8f9fa; border-right: 1px solid #ddd; padding: 15px; overflow-y: auto; font-family: monospace; font-size: 0.9em; }
+        .log-entry { margin-bottom: 6px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+        .actions-panel { width: 65%; padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-content: start; position: relative; }
+        
+        .btn-move { background: white; border: 2px solid #ddd; padding: 15px; border-radius: 8px; text-align: left; transition: 0.2s; }
+        .btn-move:hover:not(:disabled) { border-color: var(--secondary); background: #f0f8ff; transform: translateY(-2px); }
+        .btn-move:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-switch { grid-column: span 2; background: #f1c40f; border: none; color: #fff; text-align: center; padding: 10px; }
+
+        /* DICE OVERLAY */
+        .dice-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 200; display: none; flex-direction: column; justify-content: center; align-items: center; color: white; }
+        .dice-overlay.active { display: flex; }
+        
+        .die-box { width: 100px; height: 100px; display: flex; justify-content: center; align-items: center; font-size: 2em; font-weight: bold; cursor: pointer; user-select: none; border-radius: 10px; margin-bottom: 20px; animation: pulse 1s infinite; }
+        .d20 { background: var(--dark); color: white; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+        .d12 { background: var(--primary); color: white; clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%); }
+        
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes shake { 0% { transform: rotate(0deg); } 25% { transform: rotate(10deg); } 75% { transform: rotate(-10deg); } }
+        .rolling { animation: shake 0.2s infinite !important; }
+
+        /* MODAL */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 300; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 10px; width: 300px; text-align: center; }
+        .switch-btn { width: 100%; padding: 15px; margin: 5px 0; background: #eee; text-align: left; }
+
+    </style>
+</head>
+<body>
+
+<div id="screen-team" class="screen active">
+    <h1>Buai Academy: Enrollment</h1>
+    <div class="search-bar">
+        <input type="text" id="poke-search" placeholder="Enter Pokémon Name (e.g. Mudkip)">
+        <button onclick="searchPokemon()">Add to Team</button>
+        <button onclick="goToMoves()" id="btn-confirm-team" disabled style="background:#27ae60; opacity:0.5">Next Step</button>
+    </div>
+    
+    <div class="team-container" id="team-grid">
+        </div>
+</div>
+
+<div id="screen-moves" class="screen">
+    <div class="move-screen-layout">
+        <div class="roster-sidebar" id="roster-list">
+            </div>
+        <div class="move-browser">
+            <h2 id="move-browser-title">Select Moves</h2>
+            <p style="color:#666">Select at least 1 move per Pokémon.</p>
+            <div id="move-list"></div>
+        </div>
+    </div>
+    <button id="btn-start-game" onclick="startGame()" disabled 
+        style="position:absolute; bottom:20px; right:20px; padding:15px 30px; background:#27ae60; color:white; font-size:1.2em; opacity:0.5;">
+        Enter Dungeon
+    </button>
+</div>
+
+<div id="screen-dungeon" class="screen">
+    
+    <div id="dice-stage" class="dice-overlay">
+        <h2 id="dice-title">Roll for Accuracy</h2>
+        <div id="dice-visual" class="die-box d20" onclick="rollDice()">d20</div>
+        <p id="dice-instr">Click the die to roll!</p>
+    </div>
+
+    <div class="dungeon-top">
+        <div class="battler" onclick="toggleStats('player')">
+            <div class="stat-bubble" id="p-stats-bubble"></div>
+            <img id="p-img" src="">
+            <div class="hp-container"><div class="hp-fill" id="p-hp-bar"></div></div>
+            <div style="font-weight:bold; background:rgba(255,255,255,0.8); border-radius:4px; margin-top:5px; padding:2px;">
+                <span id="p-name">Player</span> <span id="p-hp-text">0/0</span>
+            </div>
+        </div>
+
+        <div class="battler" onclick="toggleStats('enemy')">
+            <div class="stat-bubble" id="e-stats-bubble"></div>
+            <img id="e-img" src="">
+            <div class="hp-container"><div class="hp-fill" id="e-hp-bar"></div></div>
+            <div style="font-weight:bold; background:rgba(255,255,255,0.8); border-radius:4px; margin-top:5px; padding:2px;">
+                <span id="e-name">Enemy</span> <span id="e-hp-text">0/0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="dungeon-bot">
+        <div class="log-panel" id="battle-log">
+            <div class="log-entry">Dungeon Floor 1 Start!</div>
+        </div>
+        <div class="actions-panel" id="move-menu">
+            </div>
+    </div>
+</div>
+
+<div id="switch-modal" class="modal">
+    <div class="modal-content">
+        <h3>Switch Pokémon</h3>
+        <div id="switch-list"></div>
+        <button onclick="document.getElementById('switch-modal').style.display='none'" style="margin-top:10px; padding:10px;">Cancel</button>
+    </div>
+</div>
+
+<script>
+    // --- GLOBAL STATE ---
+    let team = [];
+    let currentPokeIdx = 0;
+    let enemy = null;
+    let floor = 1;
+    let battleState = {
+        phase: 'idle', // idle, rolling_acc, rolling_dmg
+        activeMove: null,
+        activeUser: null, // 'player' or 'enemy'
+        activeTarget: null
+    };
+
+    // --- POKEMON CLASS ---
+    class Pokemon {
+        constructor(data) {
+            this.name = data.name.toUpperCase();
+            this.sprite = data.sprites.front_default;
+            this.backSprite = data.sprites.back_default;
+            this.moves = [];
+            this.apiMoves = data.moves;
+            
+            // STATS CONVERSION
+            let s = {};
+            data.stats.forEach(st => s[st.stat.name] = st.base_stat);
+            
+            this.maxHp = Math.floor(s.hp / 5) + 5;
+            this.currentHp = this.maxHp;
+            this.atk = Math.floor(s.attack / 10);
+            this.def = Math.floor(s.defense / 10);
+            this.spa = Math.floor(s['special-attack'] / 10);
+            this.spd = Math.floor(s['special-defense'] / 10);
+            this.spe = Math.floor(s.speed / 10);
+        }
+    }
+
+    // --- PHASE 1: TEAM ---
+    async function searchPokemon() {
+        const name = document.getElementById('poke-search').value.toLowerCase();
+        if(team.length >= 3) return alert("Team is full!");
+        
+        try {
+            const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${name}`);
+            if(!res.ok) throw new Error();
+            const data = await res.json();
+            team.push(new Pokemon(data));
+            renderTeam();
+            document.getElementById('poke-search').value = "";
+        } catch {
+            alert("Pokemon not found!");
+        }
+    }
+
+    function renderTeam() {
+        const grid = document.getElementById('team-grid');
+        grid.innerHTML = "";
+        for(let i=0; i<3; i++) {
+            const slot = document.createElement('div');
+            slot.className = "team-slot" + (team[i] ? " filled" : "");
+            if(team[i]) {
+                slot.innerHTML = `
+                    <div class="remove-btn" onclick="removeMember(${i})">x</div>
+                    <img src="${team[i].sprite}">
+                    <b>${team[i].name}</b>
+                `;
+            } else {
+                slot.innerHTML = `<span style="color:#ccc">Empty</span>`;
+            }
+            grid.appendChild(slot);
+        }
+        
+        const btn = document.getElementById('btn-confirm-team');
+        if(team.length === 3) {
+            btn.disabled = false;
+            btn.style.opacity = 1;
+        } else {
+            btn.disabled = true;
+            btn.style.opacity = 0.5;
+        }
+    }
+
+    function removeMember(i) { team.splice(i, 1); renderTeam(); }
+    
+    function goToMoves() {
+        document.getElementById('screen-team').classList.remove('active');
+        document.getElementById('screen-moves').classList.add('active');
+        loadMoveSelection(0);
+    }
+
+    // --- PHASE 2: MOVES ---
+    let selectionIdx = 0;
+
+    async function loadMoveSelection(idx) {
+        selectionIdx = idx;
+        const p = team[idx];
+        
+        // Render Sidebar
+        const sidebar = document.getElementById('roster-list');
+        sidebar.innerHTML = "";
+        team.forEach((tm, i) => {
+            const div = document.createElement('div');
+            div.className = `roster-card ${i === idx ? 'active' : ''}`;
+            div.innerHTML = `<b>${tm.name}</b><br><small>${tm.moves.length} Moves</small>`;
+            div.onclick = () => loadMoveSelection(i);
+            sidebar.appendChild(div);
+        });
+
+        // Render Moves
+        const list = document.getElementById('move-list');
+        list.innerHTML = "Loading moves...";
+        
+        // Filter and fetch Top 15 Level-up moves
+        const levelMoves = p.apiMoves
+            .filter(m => m.version_group_details[0].move_learn_method.name === 'level-up')
+            .slice(-15);
+
+        list.innerHTML = "";
+        for (const mData of levelMoves) {
+            const res = await fetch(mData.move.url);
+            const data = await res.json();
+            const parsed = parseMove(data);
+            
+            const item = document.createElement('div');
+            item.className = "move-item";
+            const isSelected = p.moves.some(m => m.name === parsed.name);
+            
+            item.innerHTML = `
+                <div>
+                    <b>${parsed.name}</b>
+                    <span class="move-stats">
+                        <span class="${parsed.category === 'physical' ? 'move-type-phys' : 'move-type-spec'}">${parsed.category.toUpperCase()}</span>
+                        | Acc: ${parsed.acc}% | Dmg Mod: +${parsed.mod}
+                    </span>
+                    <span style="font-size:0.8em; color:#999">${parsed.desc}</span>
+                </div>
+                <button onclick="toggleMove(${idx}, '${parsed.name}')" style="background:${isSelected ? '#e74c3c' : '#2ecc71'}; color:white; padding:8px 15px;">
+                    ${isSelected ? 'Remove' : 'Add'}
+                </button>
+            `;
+            // Cache the move object on the element for easy retrieval
+            item.moveData = parsed; 
+            
+            // Only add click handler to button, but we need scope
+            const btn = item.querySelector('button');
+            btn.onclick = () => {
+                if(isSelected) {
+                    p.moves = p.moves.filter(m => m.name !== parsed.name);
+                } else {
+                    if(p.moves.length >= 4) return alert("Max 4 moves!");
+                    p.moves.push(parsed);
+                }
+                loadMoveSelection(idx); // Refresh
+            };
+            
+            list.appendChild(item);
+        }
+        
+        checkReadyState();
+    }
+
+    function parseMove(data) {
+        let bp = data.power || 0;
+        let mod = 0;
+        if(bp > 0) mod = 1;
+        if(bp > 30) mod = 2;
+        if(bp > 60) mod = 3;
+        if(bp > 90) mod = 4;
+        if(bp > 120) mod = 5;
+
+        return {
+            name: data.name.toUpperCase(),
+            category: data.damage_class.name, // physical, special, status
+            mod: mod,
+            acc: data.accuracy || 100,
+            desc: data.flavor_text_entries.find(e => e.language.name === 'en')?.flavor_text || ""
+        };
+    }
+
+    function checkReadyState() {
+        // Ready if all pokemon have at least 1 move
+        const ready = team.every(p => p.moves.length > 0);
+        const btn = document.getElementById('btn-start-game');
+        if(ready) {
+            btn.disabled = false;
+            btn.style.opacity = 1;
+        } else {
+            btn.disabled = true;
+        }
+    }
+
+    function startGame() {
+        document.getElementById('screen-moves').classList.remove('active');
+        document.getElementById('screen-dungeon').classList.add('active');
+        initFloor(1);
+    }
+
+    // --- PHASE 3: DUNGEON ---
+    
+    async function initFloor(n) {
+        floor = n;
+        log(`Entered Floor ${floor}`);
+        
+        // Heal on floor 1, 6, 11...
+        if((floor - 1) % 5 === 0) {
+            team.forEach(p => p.currentHp = p.maxHp);
+            log("Team fully healed!");
+        }
+
+        const id = Math.floor(Math.random() * 800) + 1;
+        const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+        const data = await res.json();
+        
+        enemy = new Pokemon(data);
+        // Give enemy random moves
+        enemy.moves = [
+            { name: "TACKLE", category: "physical", mod: 1, acc: 100 },
+            { name: "SLAM", category: "physical", mod: 3, acc: 75 },
+            { name: "BEAM", category: "special", mod: 2, acc: 90 },
+            { name: "BLAST", category: "special", mod: 4, acc: 50 }
+        ];
+
+        renderBattle();
+    }
+
+    function renderBattle() {
+        const p = team[currentPokeIdx];
+        
+        // Player UI
+        document.getElementById('p-img').src = p.backSprite || p.sprite;
+        document.getElementById('p-name').innerText = p.name;
+        document.getElementById('p-hp-text').innerText = `${p.currentHp}/${p.maxHp}`;
+        document.getElementById('p-hp-bar').style.width = `${(p.currentHp/p.maxHp)*100}%`;
+        
+        // Stats Bubble Player
+        document.getElementById('p-stats-bubble').innerHTML = `
+            <b>${p.name} Stats</b>
+            <div class="stat-row"><span>ATK</span><span>${p.atk}</span></div>
+            <div class="stat-row"><span>DEF</span><span>${p.def}</span></div>
+            <div class="stat-row"><span>SPA</span><span>${p.spa}</span></div>
+            <div class="stat-row"><span>SPD</span><span>${p.spd}</span></div>
+            <div class="stat-row"><span>SPE</span><span>${p.spe}</span></div>
+        `;
+
+        // Enemy UI
+        document.getElementById('e-img').src = enemy.sprite;
+        document.getElementById('e-name').innerText = enemy.name;
+        document.getElementById('e-hp-text').innerText = `${enemy.currentHp}/${enemy.maxHp}`;
+        document.getElementById('e-hp-bar').style.width = `${(enemy.currentHp/enemy.maxHp)*100}%`;
+        
+        // Stats Bubble Enemy
+        document.getElementById('e-stats-bubble').innerHTML = `
+            <b>${enemy.name} Stats</b>
+            <div class="stat-row"><span>ATK</span><span>${enemy.atk}</span></div>
+            <div class="stat-row"><span>DEF</span><span>${enemy.def}</span></div>
+            <div class="stat-row"><span>SPA</span><span>${enemy.spa}</span></div>
+            <div class="stat-row"><span>SPD</span><span>${enemy.spd}</span></div>
+            <div class="stat-row"><span>SPE</span><span>${enemy.spe}</span></div>
+        `;
+
+        // Buttons
+        const menu = document.getElementById('move-menu');
+        menu.innerHTML = "";
+        
+        if(p.currentHp <= 0) {
+            menu.innerHTML = `<button class="btn-switch" onclick="openSwitch()">Pokemon Fainted! Switch!</button>`;
+            return;
+        }
+
+        p.moves.forEach(m => {
+            const btn = document.createElement('button');
+            btn.className = "btn-move";
+            btn.innerHTML = `<b>${m.name}</b><br><small>${m.category.substr(0,4).toUpperCase()} | +${m.mod}</small>`;
+            btn.onclick = () => initPlayerTurn(m);
+            menu.appendChild(btn);
+        });
+
+        const sw = document.createElement('button');
+        sw.className = "btn-switch";
+        sw.innerText = "SWITCH POKÉMON (+6 Priority)";
+        sw.onclick = openSwitch;
+        menu.appendChild(sw);
+    }
+
+    function toggleStats(who) {
+        const id = who === 'player' ? 'p-stats-bubble' : 'e-stats-bubble';
+        const el = document.getElementById(id);
+        el.classList.toggle('visible');
+    }
+
+    function log(msg) {
+        const div = document.createElement('div');
+        div.className = "log-entry";
+        div.innerHTML = msg;
+        const box = document.getElementById('battle-log');
+        box.prepend(div);
+    }
+
+    // --- TURN LOGIC & DICE SYSTEM ---
+
+    function initPlayerTurn(move) {
+        battleState.activeMove = move;
+        battleState.activeUser = team[currentPokeIdx];
+        battleState.activeTarget = enemy;
+        
+        // Check Speed Logic? 
+        // For simplicity in this turn-based d20 clicker, Player attacks -> Enemy attacks
+        // unless Player Switches (handled elsewhere).
+        
+        // Start Manual Dice Flow
+        openDiceOverlay('d20', move.name);
+    }
+
+    function openDiceOverlay(type, moveName) {
+        const ov = document.getElementById('dice-stage');
+        const visual = document.getElementById('dice-visual');
+        const title = document.getElementById('dice-title');
+        const instr = document.getElementById('dice-instr');
+        
+        ov.classList.add('active');
+        visual.classList.remove('d20', 'd12', 'rolling');
+        visual.classList.add(type);
+        visual.innerText = type;
+        
+        if(type === 'd20') {
+            title.innerText = `${moveName}: Accuracy Check`;
+            instr.innerText = "Click d20 to roll for Hit";
+            battleState.phase = 'rolling_acc';
+        } else {
+            title.innerText = `${moveName}: Damage Roll`;
+            instr.innerText = "Click d12 to roll Damage";
+            battleState.phase = 'rolling_dmg';
+        }
+    }
+
+    function rollDice() {
+        const die = document.getElementById('dice-visual');
+        if(die.classList.contains('rolling')) return;
+        
+        die.classList.add('rolling');
+        
+        setTimeout(() => {
+            die.classList.remove('rolling');
+            
+            if(battleState.phase === 'rolling_acc') {
+                const roll = Math.floor(Math.random() * 20) + 1;
+                die.innerText = roll;
+                setTimeout(() => resolveAccuracy(roll), 800);
+            } 
+            else if(battleState.phase === 'rolling_dmg') {
+                const roll = Math.floor(Math.random() * 12) + 1;
+                die.innerText = roll;
+                setTimeout(() => resolveDamage(roll), 800);
+            }
+        }, 500);
+    }
+
+    function resolveAccuracy(roll) {
+        const move = battleState.activeMove;
+        
+        // Calculate Miss Threshold
+        // 100% = miss on 5, 90%=6, 80%=7, 70%=8, 60%=9, 50%=10
+        let missThreshold = 5;
+        if(move.acc === 90) missThreshold = 6;
+        if(move.acc === 80) missThreshold = 7;
+        if(move.acc === 70) missThreshold = 8;
+        if(move.acc === 60) missThreshold = 9;
+        if(move.acc <= 50) missThreshold = 10;
+
+        if(roll <= missThreshold) {
+            log(`${battleState.activeUser.name} used ${move.name}... <span style="color:red">MISS!</span> (Rolled ${roll})`);
+            closeDice();
+            endTurn(); // Miss ends that action
+        } else {
+            log(`${battleState.activeUser.name} used ${move.name}... HIT! (Rolled ${roll})`);
+            // Proceed to Damage
+            openDiceOverlay('d12', move.name);
+        }
+    }
+
+    function resolveDamage(roll) {
+        const move = battleState.activeMove;
+        const user = battleState.activeUser;
+        const target = battleState.activeTarget;
+        
+        let atkStat, defStat;
+        
+        // PHYSICAL / SPECIAL SPLIT
+        if(move.category === 'physical') {
+            atkStat = user.atk;
+            defStat = target.def;
+        } else {
+            atkStat = user.spa;
+            defStat = target.spd;
+        }
+        
+        // Formula
+        let dmg = atkStat + roll + move.mod - defStat;
+        
+        // Crit (Nat 12 on d12)
+        if(roll === 12) {
+            dmg = Math.floor((atkStat + roll + move.mod) * 1.5) - defStat;
+            log(`<b style="color:orange">CRITICAL HIT!</b>`);
+        }
+        
+        if(dmg < 1) dmg = 1;
+
+        target.currentHp -= dmg;
+        if(target.currentHp < 0) target.currentHp = 0;
+        
+        log(`Dealt <b>${dmg}</b> Damage.`);
+        closeDice();
+        renderBattle();
+        
+        if(target.currentHp <= 0) {
+            handleKO();
+        } else {
+            endTurn();
+        }
+    }
+
+    function closeDice() {
+        document.getElementById('dice-stage').classList.remove('active');
+    }
+
+    function endTurn() {
+        // If Player just went, now Enemy goes
+        if(battleState.activeUser === team[currentPokeIdx]) {
+            setTimeout(enemyTurn, 1000);
+        }
+    }
+
+    function handleKO() {
+        if(enemy.currentHp <= 0) {
+            log(`<b>Enemy Defeated!</b>`);
+            setTimeout(() => initFloor(floor + 1), 2000);
+        } else if (team[currentPokeIdx].currentHp <= 0) {
+            log(`<b>Your Pokemon Fainted!</b>`);
+            renderBattle(); // Shows switch button
+        }
+    }
+
+    // --- ENEMY AI ---
+    function enemyTurn() {
+        if(enemy.currentHp <= 0) return;
+        
+        // Simple AI: Pick random move, Auto-Roll (no UI click required for enemy to save time)
+        const move = enemy.moves[Math.floor(Math.random() * enemy.moves.length)];
+        
+        log(`Enemy ${enemy.name} uses ${move.name}!`);
+        
+        // 1. Acc
+        const accRoll = Math.floor(Math.random() * 20) + 1;
+        
+        // Calc threshold
+        let missThreshold = 5;
+        if(move.acc === 90) missThreshold = 6; 
+        // ... (simplified logic for enemy) ...
+        
+        if(accRoll <= missThreshold) {
+            log(`Enemy Missed! (Rolled ${accRoll})`);
+            return; // Turn ends
+        }
+        
+        // 2. Damage
+        const dmgRoll = Math.floor(Math.random() * 12) + 1;
+        const p = team[currentPokeIdx];
+        
+        let atk = (move.category === 'physical') ? enemy.atk : enemy.spa;
+        let def = (move.category === 'physical') ? p.def : p.spd;
+        
+        let dmg = atk + dmgRoll + move.mod - def;
+        if(dmgRoll === 12) dmg = Math.floor((atk + dmgRoll + move.mod) * 1.5) - def;
+        if(dmg < 1) dmg = 1;
+        
+        p.currentHp -= dmg;
+        if(p.currentHp < 0) p.currentHp = 0;
+        
+        log(`Enemy dealt <b>${dmg}</b> damage to you.`);
+        renderBattle();
+        
+        if(p.currentHp <= 0) handleKO();
+    }
+
+    // --- SWITCHING ---
+    function openSwitch() {
+        const m = document.getElementById('switch-modal');
+        const l = document.getElementById('switch-list');
+        l.innerHTML = "";
+        
+        team.forEach((p, i) => {
+            if(i === currentPokeIdx && p.currentHp > 0) return;
+            const b = document.createElement('button');
+            b.className = "switch-btn";
+            b.innerHTML = `<b>${p.name}</b> (${p.currentHp}/${p.maxHp} HP)`;
+            if(p.currentHp > 0) {
+                b.onclick = () => doSwitch(i);
+            } else {
+                b.style.opacity = 0.5;
+            }
+            l.appendChild(b);
+        });
+        m.style.display = 'flex';
+    }
+
+    function doSwitch(idx) {
+        document.getElementById('switch-modal').style.display = 'none';
+        const oldP = team[currentPokeIdx];
+        currentPokeIdx = idx;
+        const newP = team[currentPokeIdx];
+        
+        log(`Switched to ${newP.name}!`);
+        renderBattle();
+        
+        // If switched while alive, enemy attacks
+        if(oldP.currentHp > 0) {
+            setTimeout(enemyTurn, 1000);
+        }
+    }
+
+</script>
+</body>
+</html>
