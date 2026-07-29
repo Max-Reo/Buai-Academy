@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background-color: #1e1e24;
+      color: #e0e0e0;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .container {
+      max-width: 500px;
+      width: 100%;
+      background-color: #2b2d31;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .tree-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .btn-harvest {
+      background-color: #ff69b4;
+      color: #ffffff;
+      border: none;
+      padding: 14px 28px;
+      font-size: 18px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    .btn-harvest:hover:not(:disabled) {
+      background-color: #ff1493;
+    }
+
+    .btn-harvest:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .btn-harvest:disabled {
+      background-color: #4f545c;
+      color: #a0a0a0;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-fertilizer {
+      background-color: #4f545c;
+      color: #ffffff;
+      border: none;
+      padding: 8px 16px;
+      font-size: 13px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .btn-fertilizer:hover:not(:disabled) {
+      background-color: #686d73;
+    }
+
+    .btn-fertilizer:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Modals */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background-color: #2b2d31;
+      padding: 25px;
+      border-radius: 10px;
+      max-width: 400px;
+      width: 90%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.6);
+    }
+
+    .modal-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 15px 0;
+      width: 100%;
+    }
+
+    .modal-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .fert-icon {
+      width: 28px;
+      height: 28px;
+    }
+
+    .jackpot-banner {
+      color: #ffd700;
+      font-weight: bold;
+      font-size: 14px;
+      text-align: center;
+      background: rgba(255, 215, 0, 0.1);
+      border: 1px solid #ffd700;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+
+    .btn-copy {
+      background-color: #5865f2;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      font-weight: bold;
+      font-size: 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: background-color 0.2s;
+    }
+
+    .btn-copy:hover {
+      background-color: #4752c4;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Sakura Tree SVG with 10 Pink Apples Spaced Out -->
+  <div class="tree-container">
+    <svg width="250" height="250" viewBox="0 0 200 200">
+      <!-- Trunk & Branches -->
+      <path d="M90 190 Q95 140 85 110 Q75 80 100 70 Q125 80 115 110 Q105 140 110 190 Z" fill="#5c3d2e" />
+      <path d="M85 110 Q60 90 45 95 Q60 105 80 120 Z" fill="#4a2e21" />
+      <path d="M115 110 Q140 90 155 95 Q140 105 120 120 Z" fill="#4a2e21" />
+      
+      <!-- Anime Sakura Foliage Layers -->
+      <circle cx="100" cy="70" r="48" fill="#ffb7c5" />
+      <circle cx="55" cy="80" r="38" fill="#ff9ebb" />
+      <circle cx="145" cy="80" r="38" fill="#ff9ebb" />
+      <circle cx="70" cy="45" r="38" fill="#ffc0cb" />
+      <circle cx="130" cy="45" r="38" fill="#ffc0cb" />
+      <circle cx="100" cy="35" r="38" fill="#ffe4e1" />
+
+      <!-- 10 Pink Apples (Spaced Out) -->
+      <!-- 1 (Far Left Top) --><circle cx="45" cy="70" r="6" fill="#ff1493" /><path d="M45 64 Q47 60 49 62" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <!-- 2 (Left High) --><circle cx="65" cy="42" r="6" fill="#ff1493" /><path d="M65 36 Q67 32 69 34" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <!-- 3 (Top Left Peak) --><circle cx="85" cy="24" r="6" fill="#ff1493" /><path d="M85 18 Q87 14 89 16" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <!-- 4 (Top Right Peak) --><circle cx="115" cy="24" r="6" fill="#ff1493" /><path d="M115 18 Q117 14 119 16" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <!-- 5 (Right High) --><circle cx="135" cy="42" r="6" fill="#ff1493" /><path d="M135 36 Q137 32 139 34" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <!-- 6 (Far Right Top) --><circle cx="155" cy="70" r="6" fill="#ff1493" /><path d="M155 64 Q157 60 159 62" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <!-- 7 (Center Low) --><circle cx="100" cy="65" r="6" fill="#ff1493" /><path d="M100 59 Q102 55 104 57" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <!-- 8 (Left Bottom) --><circle cx="70" cy="98" r="6" fill="#ff1493" /><path d="M70 92 Q72 88 74 90" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <!-- 9 (Center Bottom) --><circle cx="100" cy="92" r="6" fill="#ff1493" /><path d="M100 86 Q102 82 104 84" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <!-- 10 (Right Bottom) --><circle cx="130" cy="98" r="6" fill="#ff1493" /><path d="M130 92 Q132 88 134 90" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+    </svg>
+  </div>
+
+  <div class="controls">
+    <button id="btnHarvest" class="btn-harvest" onclick="harvest10()">Harvest x10 Destiny Fruit</button>
+    <button id="btnFertilizer" class="btn-fertilizer" onclick="toggleModal('fertilizerModal', true)">use fertilizer</button>
+  </div>
+</div>
+
+<!-- Fertilizer Modal -->
+<div id="fertilizerModal" class="modal-overlay">
+  <div class="modal">
+    <p style="text-align: center; margin-top: 0;">you can choose up to 2 fertilizer to narrow down your reward stat.</p>
+    <div class="modal-options">
+      <label class="modal-option">
+        <input type="checkbox" class="fert-checkbox" value="0" onchange="handleCheckboxChange(this)">
+        <svg class="fert-icon" viewBox="0 0 32 32"><path d="M8 12 L24 12 L22 28 L10 28 Z" fill="#8b5a2b"/><path d="M10 6 L22 6 L24 12 L8 12 Z" fill="#a0522d"/><circle cx="16" cy="20" r="4" fill="#ffb7c5"/></svg>
+        use Adorability? fertilizer
+      </label>
+      <label class="modal-option">
+        <input type="checkbox" class="fert-checkbox" value="1" onchange="handleCheckboxChange(this)">
+        <svg class="fert-icon" viewBox="0 0 32 32"><path d="M8 12 L24 12 L22 28 L10 28 Z" fill="#8b5a2b"/><path d="M10 6 L22 6 L24 12 L8 12 Z" fill="#a0522d"/><circle cx="16" cy="20" r="4" fill="#ffb7c5"/></svg>
+        use Squishiness~ fertilizer
+      </label>
+      <label class="modal-option">
+        <input type="checkbox" class="fert-checkbox" value="2" onchange="handleCheckboxChange(this)">
+        <svg class="fert-icon" viewBox="0 0 32 32"><path d="M8 12 L24 12 L22 28 L10 28 Z" fill="#8b5a2b"/><path d="M10 6 L22 6 L24 12 L8 12 Z" fill="#a0522d"/><circle cx="16" cy="20" r="4" fill="#ffb7c5"/></svg>
+        use Zoomies! fertilizer
+      </label>
+      <label class="modal-option">
+        <input type="checkbox" class="fert-checkbox" value="3" onchange="handleCheckboxChange(this)">
+        <svg class="fert-icon" viewBox="0 0 32 32"><path d="M8 12 L24 12 L22 28 L10 28 Z" fill="#8b5a2b"/><path d="M10 6 L22 6 L24 12 L8 12 Z" fill="#a0522d"/><circle cx="16" cy="20" r="4" fill="#ffb7c5"/></svg>
+        use Stare... fertilizer
+      </label>
+      <label class="modal-option">
+        <input type="checkbox" class="fert-checkbox" value="4" onchange="handleCheckboxChange(this)">
+        <svg class="fert-icon" viewBox="0 0 32 32"><path d="M8 12 L24 12 L22 28 L10 28 Z" fill="#8b5a2b"/><path d="M10 6 L22 6 L24 12 L8 12 Z" fill="#a0522d"/><circle cx="16" cy="20" r="4" fill="#ffb7c5"/></svg>
+        use Prowess. fertilizer
+      </label>
+    </div>
+    <button class="btn-fertilizer" onclick="toggleModal('fertilizerModal', false)">X</button>
+  </div>
+</div>
+
+<!-- Results Pop-Up Modal -->
+<div id="resultsModal" class="modal-overlay">
+  <div class="modal">
+    <div id="resultsContent" style="width: 100%;"></div>
+    <button id="btnCopy" class="btn-copy" onclick="copyResults()">Copy to share in Comments</button>
+    <button class="btn-fertilizer" style="margin-top: 15px;" onclick="closeResultsModal()">Close</button>
+  </div>
+</div>
+
+<script>
+  const statsList = [
+    "Adorability?",
+    "Squishiness~",
+    "Zoomies!",
+    "Stare...",
+    "Prowess."
+  ];
+
+  let rawCopyText = "";
+
+  function toggleModal(id, show) {
+    document.getElementById(id).classList.toggle('active', show);
+  }
+
+  function handleCheckboxChange(checkbox) {
+    const checked = document.querySelectorAll('.fert-checkbox:checked');
+    if (checked.length > 2) {
+      checkbox.checked = false;
+    }
+  }
+
+  function getProbabilities() {
+    const checked = Array.from(document.querySelectorAll('.fert-checkbox:checked')).map(cb => parseInt(cb.value));
+    const probs = [0.2, 0.2, 0.2, 0.2, 0.2];
+
+    if (checked.length === 1) {
+      const target = checked[0];
+      for (let i = 0; i < 5; i++) {
+        probs[i] = (i === target) ? 0.40 : 0.15;
+      }
+    } else if (checked.length === 2) {
+      const [t1, t2] = checked;
+      for (let i = 0; i < 5; i++) {
+        probs[i] = (i === t1 || i === t2) ? 0.30 : (13.333333 / 100);
+      }
+    }
+
+    return probs;
+  }
+
+  function harvest10() {
+    // 5% Jackpot Roll
+    const isJackpot = Math.random() < 0.05;
+    const pullsCount = isJackpot ? 20 : 10;
+
+    const probs = getProbabilities();
+    const counts = [0, 0, 0, 0, 0];
+
+    for (let i = 0; i < pullsCount; i++) {
+      const rand = Math.random();
+      let cumulative = 0;
+      for (let j = 0; j < 5; j++) {
+        cumulative += probs[j];
+        if (rand < cumulative || j === 4) {
+          counts[j]++;
+          break;
+        }
+      }
+    }
+
+    // Prepare Results Display & Clipboard Content
+    let displayHtml = "";
+    let copyLines = [];
+
+    if (isJackpot) {
+      displayHtml += `<div class="jackpot-banner">Congrats, you got jackpot and got twice as more Destiny Fruits!</div>`;
+      copyLines.push("Congrats, you got jackpot and got twice as more Destiny Fruits!");
+    }
+
+    displayHtml += `<h3 style="text-align: center; margin-top: 0; margin-bottom: 12px;">You Got:</h3>`;
+    displayHtml += `<div style="display: flex; flex-direction: column; gap: 6px; align-items: center; font-size: 16px;">`;
+    
+    copyLines.push("You Got:");
+
+    statsList.forEach((stat, index) => {
+      displayHtml += `<div><span style="color: #ffb7c5; font-weight: bold;">${stat}</span> +${counts[index]}</div>`;
+      copyLines.push(`${stat} +${counts[index]}`);
+    });
+
+    displayHtml += `</div>`;
+
+    rawCopyText = copyLines.join("\n");
+
+    document.getElementById('resultsContent').innerHTML = displayHtml;
+    toggleModal('resultsModal', true);
+  }
+
+  function closeResultsModal() {
+    toggleModal('resultsModal', false);
+    
+    // Grey out and disable buttons
+    const harvestBtn = document.getElementById('btnHarvest');
+    const fertBtn = document.getElementById('btnFertilizer');
+    
+    harvestBtn.disabled = true;
+    harvestBtn.innerText = "Come Back Tomorrow";
+    fertBtn.disabled = true;
+  }
+
+  function copyResults() {
+    navigator.clipboard.writeText(rawCopyText).then(() => {
+      const copyBtn = document.getElementById('btnCopy');
+      copyBtn.innerText = "Copied!";
+      setTimeout(() => {
+        copyBtn.innerText = "Copy to share in Comments";
+      }, 2000);
+    });
+  }
+</script>
+
+</body>
+</html>
