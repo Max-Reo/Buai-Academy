@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aperion Beach Hotel - Oda Konaklama Fiyat Hesap Makinesi</title>
+  <style>
+    :root {
+      --primary-color: #0e6251;
+      --secondary-color: #117a65;
+      --accent-color: #e67e22;
+      --bg-color: #f4f6f7;
+      --card-bg: #ffffff;
+      --text-color: #2c3e50;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .calculator-card {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 650px;
+      padding: 30px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 25px;
+      border-bottom: 2px solid #eaeded;
+      padding-bottom: 15px;
+    }
+
+    .header h1 {
+      color: var(--primary-color);
+      font-size: 1.6rem;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      color: #7f8c8d;
+      font-size: 0.9rem;
+    }
+
+    .section {
+      margin-bottom: 22px;
+    }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--secondary-color);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 15px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #566573;
+    }
+
+    input[type="date"], select, input[type="number"] {
+      padding: 10px 12px;
+      border: 1px solid #bdc3c7;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+
+    input[type="date"]:focus, select:focus, input[type="number"]:focus {
+      border-color: var(--secondary-color);
+    }
+
+    .counter-group {
+      display: flex;
+      align-items: center;
+    }
+
+    .counter-btn {
+      background-color: #e5e8e8;
+      border: 1px solid #bdc3c7;
+      color: #2c3e50;
+      width: 36px;
+      height: 40px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s;
+    }
+
+    .counter-btn:hover {
+      background-color: #d5dbdb;
+    }
+
+    .counter-btn.minus {
+      border-radius: 6px 0 0 6px;
+    }
+
+    .counter-btn.plus {
+      border-radius: 0 6px 6px 0;
+    }
+
+    .counter-input {
+      text-align: center;
+      border-left: none;
+      border-right: none;
+      border-radius: 0;
+      height: 40px;
+      -moz-appearance: textfield;
+    }
+
+    .counter-input::-webkit-outer-spin-button,
+    .counter-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .disclaimer {
+      font-size: 0.78rem;
+      color: #7f8c8d;
+      margin-top: 8px;
+      font-style: italic;
+    }
+
+    .price-box {
+      background: linear-gradient(135deg, #e8f8f5, #a3e4d7);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      margin-top: 25px;
+      border: 1px solid #a3e4d7;
+    }
+
+    .price-night {
+      font-size: 1.1rem;
+      color: #16a085;
+      margin-bottom: 8px;
+    }
+
+    .price-total-label {
+      font-size: 0.95rem;
+      color: #34495e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .price-total {
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: var(--primary-color);
+      margin-top: 4px;
+    }
+
+    .error-msg {
+      color: #c0392b;
+      font-size: 0.85rem;
+      margin-top: 8px;
+      text-align: center;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="calculator-card">
+  <div class="header">
+    <h1>Aperion Beach Hotel</h1>
+    <p>Oda Konaklama Fiyat Hesap Makinesi</p>
+  </div>
+
+  <!-- Aşama 1: Tarih Seçimi -->
+  <div class="section">
+    <div class="section-title">1. Konaklama Tarihi</div>
+    <div class="grid-3">
+      <div class="form-group">
+        <label for="checkIn">Giriş Tarihi</label>
+        <input type="date" id="checkIn" min="2026-08-01" max="2026-10-30">
+      </div>
+      
+      <div class="form-group">
+        <label for="nights">Gece Sayısı</label>
+        <div class="counter-group">
+          <button class="counter-btn minus" onclick="adjustNights(-1)">-</button>
+          <input type="number" id="nights" class="counter-input" value="1" min="1" max="92" onchange="onNightsInputChange()">
+          <button class="counter-btn plus" onclick="adjustNights(1)">+</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="checkOut">Çıkış Tarihi</label>
+        <input type="date" id="checkOut" min="2026-08-02" max="2026-10-31">
+      </div>
+    </div>
+  </div>
+
+  <!-- Aşama 2: Kişi Sayısı Seçimi -->
+  <div class="section">
+    <div class="section-title">2. Misafir Sayısı</div>
+    <div class="grid-3">
+      <div class="form-group">
+        <label for="adults">Yetişkin</label>
+        <div class="counter-group">
+          <button class="counter-btn minus" onclick="adjustCount('adults', -1)">-</button>
+          <input type="number" id="adults" class="counter-input" value="2" min="1" max="6" readonly>
+          <button class="counter-btn plus" onclick="adjustCount('adults', 1)">+</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="children">Çocuk (6-11 Yaş)</label>
+        <div class="counter-group">
+          <button class="counter-btn minus" onclick="adjustCount('children', -1)">-</button>
+          <input type="number" id="children" class="counter-input" value="0" min="0" max="4" readonly>
+          <button class="counter-btn plus" onclick="adjustCount('children', 1)">+</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="infants">Bebek (0-5 Yaş)</label>
+        <div class="counter-group">
+          <button class="counter-btn minus" onclick="adjustCount('infants', -1)">-</button>
+          <input type="number" id="infants" class="counter-input" value="0" min="0" max="3" readonly>
+          <button class="counter-btn plus" onclick="adjustCount('infants', 1)">+</button>
+        </div>
+      </div>
+    </div>
+    <p class="disclaimer">* Bebek: 0-5 yaş (ücretsizdir), Çocuk: 6-11 yaş arasındadır.</p>
+  </div>
+
+  <!-- Aşama 3: Oda Tipi Seçimi -->
+  <div class="section">
+    <div class="section-title">3. Oda Tipi</div>
+    <div class="form-group">
+      <select id="roomType" onchange="calculatePrice()">
+        <option value="standart">Standart Oda</option>
+        <option value="garden">Garden Oda</option>
+        <option value="bunkbed">Bunkbed Oda</option>
+        <option value="family">Family Oda</option>
+        <option value="caravan">Caravan Oda</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="errorMsg" class="error-msg">Lütfen Ağustos, Eylül veya Ekim ayları içerisinde geçerli bir tarih seçiniz.</div>
+
+  <!-- Fiyat Sonuç Alanı -->
+  <div class="price-box">
+    <div class="price-night">Gece Konaklama Fiyatı: <strong id="avgNightlyPrice">0 TL</strong></div>
+    <div class="price-total-label">Toplam Konaklama Fiyatı</div>
+    <div class="price-total" id="totalPrice">0 TL</div>
+  </div>
+</div>
+
+<script>
+  // Sezon Sınırları (Ağustos, Eylül, Ekim 2026)
+  const MIN_DATE = new Date("2026-08-01");
+  const MAX_DATE = new Date("2026-10-31");
+
+  // Fiyat Tablosu Verileri
+  const priceRates = {
+    // 31 Ağustosa kadar
+    period1: {
+      standart: { 1: 7100, 2: 7100, 3: 9940 },
+      garden:   { 1: 6300, 2: 6300, 3: 8820 },
+      bunkbed:  { 1: 8820, 2: 8820, 3: 8820, 4: 11025 },
+      family:   { 1: 9450, 2: 9450, 3: 9450, 4: 11025, 5: 12600 },
+      caravan:  { 1: 5500, 2: 5500, 3: 7500 } // Standart varsayılan karavan fiyatı
+    },
+    // Eylül 1-20
+    period2: {
+      standart: { 1: 6200, 2: 6200, 3: 8680 },
+      garden:   { 1: 5400, 2: 5400, 3: 7560 },
+      bunkbed:  { 1: 7560, 2: 7560, 3: 7560, 4: 9450 },
+      family:   { 1: 8100, 2: 8100, 3: 8100, 4: 9450, 5: 10800 },
+      caravan:  { 1: 4800, 2: 4800, 3: 6500 }
+    },
+    // 21 Eylül sonrası (21 Eylül - 31 Ekim)
+    period3: {
+      standart: { 1: 5600, 2: 5600, 3: 7840 },
+      garden:   { 1: 4800, 2: 4800, 3: 6720 },
+      bunkbed:  { 1: 6720, 2: 6720, 3: 6720, 4: 8400 },
+      family:   { 1: 7200, 2: 7200, 3: 7200, 4: 8400, 5: 9600 },
+      caravan:  { 1: 4200, 2: 4200, 3: 5800 }
+    }
+  };
+
+  // Elementlerin Seçilmesi
+  const checkInInput = document.getElementById('checkIn');
+  const checkOutInput = document.getElementById('checkOut');
+  const nightsInput = document.getElementById('nights');
+  const adultsInput = document.getElementById('adults');
+  const childrenInput = document.getElementById('children');
+  const infantsInput = document.getElementById('infants');
+  const roomTypeSelect = document.getElementById('roomType');
+  const avgNightlyPriceElem = document.getElementById('avgNightlyPrice');
+  const totalPriceElem = document.getElementById('totalPrice');
+  const errorMsg = document.getElementById('errorMsg');
+
+  // Yardımcı Fonksiyonlar: Tarih Formatlama
+  function formatDate(date) {
+    const d = new Date(date);
+    let month = '' + (d.getMonth() + 1);
+    let day = '' + d.getDate();
+    const year = d.getFullYear();
+
+    if (month.length < 2) month = '0' + month;
+    if (day.length < 2) day = '0' + day;
+
+    return [year, month, day].join('-');
+  }
+
+  function addDays(date, days) {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  }
+
+  // Sayfayı Başlatma
+  function init() {
+    const initialCheckIn = new Date("2026-08-01");
+    checkInInput.value = formatDate(initialCheckIn);
+    updateCheckOutFromNights();
+
+    checkInInput.addEventListener('change', onCheckInChange);
+    checkOutInput.addEventListener('change', onCheckOutChange);
+  }
+
+  // Giriş Tarihi Değiştiğinde
+  function onCheckInChange() {
+    let cin = new Date(checkInInput.value);
+    if (isNaN(cin.getTime())) return;
+
+    if (cin < MIN_DATE) cin = new Date(MIN_DATE);
+    if (cin >= MAX_DATE) cin = addDays(MAX_DATE, -1);
+    
+    checkInInput.value = formatDate(cin);
+    updateCheckOutFromNights();
+  }
+
+  // Gece Sayısı Butonları / Input Değişimi
+  function adjustNights(val) {
+    let currentNights = parseInt(nightsInput.value) || 1;
+    currentNights += val;
+    if (currentNights < 1) currentNights = 1;
+    nightsInput.value = currentNights;
+    updateCheckOutFromNights();
+  }
+
+  function onNightsInputChange() {
+    let val = parseInt(nightsInput.value) || 1;
+    if (val < 1) val = 1;
+    nightsInput.value = val;
+    updateCheckOutFromNights();
+  }
+
+  // Giriş tarihi + Gece sayısı = Çıkış Tarihi
+  function updateCheckOutFromNights() {
+    const cin = new Date(checkInInput.value);
+    const nights = parseInt(nightsInput.value) || 1;
+    const cout = addDays(cin, nights);
+    
+    checkOutInput.value = formatDate(cout);
+    calculatePrice();
+  }
+
+  // Çıkış Tarihi Manuel Değiştiğinde
+  function onCheckOutChange() {
+    const cin = new Date(checkInInput.value);
+    let cout = new Date(checkOutInput.value);
+
+    if (isNaN(cout.getTime())) return;
+
+    if (cout <= cin) {
+      cout = addDays(cin, 1);
+      checkOutInput.value = formatDate(cout);
+    }
+
+    const diffTime = Math.abs(cout - cin);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    nightsInput.value = diffDays;
+    calculatePrice();
+  }
+
+  // Yetişkin, Çocuk, Bebek Sayısı Ayarlama
+  function adjustCount(type, val) {
+    const input = document.getElementById(type);
+    let current = parseInt(input.value) || 0;
+    const min = parseInt(input.min);
+    const max = parseInt(input.max);
+
+    current += val;
+    if (current >= min && current <= max) {
+      input.value = current;
+      calculatePrice();
+    }
+  }
+
+  // Fiyat Hesaplama Mantığı
+  function calculatePrice() {
+    const cin = new Date(checkInInput.value);
+    const nights = parseInt(nightsInput.value) || 1;
+    const roomType = roomTypeSelect.value;
+    
+    const adults = parseInt(adultsInput.value) || 0;
+    const children = parseInt(childrenInput.value) || 0;
+    
+    // Toplam ödeyen kişi sayısı = Yetişkin + Çocuk (Bebek 0-5 yaş ücretsizdir)
+    const personCount = adults + children;
+
+    let totalPrice = 0;
+    let isValidRange = true;
+
+    // Gün gün gezerek doğru dönemin fiyatını alma
+    for (let i = 0; i < nights; i++) {
+      const currentNight = addDays(cin, i);
+      
+      // Tarih aralığı kontrolü
+      if (currentNight < MIN_DATE || currentNight >= MAX_DATE) {
+        isValidRange = false;
+        break;
+      }
+
+      const dayOfMonth = currentNight.getDate();
+      const month = currentNight.getMonth() + 1; // 8: Ağustos, 9: Eylül, 10: Ekim
+
+      let periodKey = '';
+
+      if (month === 8) {
+        periodKey = 'period1'; // 31 Ağustosa kadar
+      } else if (month === 9) {
+        if (dayOfMonth <= 20) {
+          periodKey = 'period2'; // 1-20 Eylül
+        } else {
+          periodKey = 'period3'; // 21 Eylül sonrası
+        }
+      } else if (month === 10) {
+        periodKey = 'period3'; // Ekim ayı
+      }
+
+      // Seçilen döneme ve oda tipine göre fiyat bulma
+      const roomRates = priceRates[periodKey][roomType];
+      
+      // Kişi sayısı kapasite üstündeyse maksimum kapasite tarifesini baz alma
+      let effectivePax = personCount;
+      const maxPaxInTable = Math.max(...Object.keys(roomRates).map(Number));
+      const minPaxInTable = Math.min(...Object.keys(roomRates).map(Number));
+
+      if (effectivePax > maxPaxInTable) effectivePax = maxPaxInTable;
+      if (effectivePax < minPaxInTable) effectivePax = minPaxInTable;
+
+      const nightRate = roomRates[effectivePax] || 0;
+      totalPrice += nightRate;
+    }
+
+    if (!isValidRange) {
+      errorMsg.style.display = 'block';
+      avgNightlyPriceElem.innerText = "0 TL";
+      totalPriceElem.innerText = "0 TL";
+      return;
+    } else {
+      errorMsg.style.display = 'none';
+    }
+
+    const avgNightlyPrice = Math.round(totalPrice / nights);
+
+    // Ekrana Yazdırma (Türk Lirası Formatı)
+    avgNightlyPriceElem.innerText = avgNightlyPrice.toLocaleString('tr-TR') + " TL";
+    totalPriceElem.innerText = totalPrice.toLocaleString('tr-TR') + " TL";
+  }
+
+  // Sayfa yüklendiğinde çalıştır
+  document.addEventListener("DOMContentLoaded", init);
+</script>
+
+</body>
+</html>
