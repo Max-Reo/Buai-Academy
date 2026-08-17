@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pokémon Wild Encounter Zone</title>
+  <style>
+    :root {
+      --bg-dark: #0f1115;
+      --card-bg: #1a1d24;
+      --card-hover: #222730;
+      --border-color: #2e3440;
+      --text-main: #f0f2f5;
+      --text-muted: #8c93a0;
+      --accent-cyan: #00f0ff;
+      --accent-green: #2ecc71;
+      --accent-zygarde: #76ff03;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      padding: 24px 16px;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .header {
+      text-align: center;
+    }
+
+    .header h2 {
+      font-size: 1.5rem;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .header p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .locations-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .location-btn {
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s ease;
+      color: inherit;
+    }
+
+    .location-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .location-btn.active {
+      border-color: #fff;
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.15);
+      cursor: default;
+    }
+
+    .location-btn:disabled:not(.active) {
+      opacity: 0.35;
+      cursor: not-allowed;
+      filter: grayscale(0.6);
+      transform: none;
+    }
+
+    .location-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .types-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .type-pill {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.4px;
+    }
+
+    .type-ghost { background: #735797; color: #fff; }
+    .type-fire { background: #ee8130; color: #fff; }
+    .type-steel { background: #b7b7ce; color: #222; }
+    .type-water { background: #6390f0; color: #fff; }
+    .type-electric { background: #f7d02c; color: #222; }
+    .type-dragon { background: #6f35fc; color: #fff; }
+    .type-fairy { background: #d685ad; color: #fff; }
+    .type-ground { background: #e2bf65; color: #222; }
+    .type-flying { background: #a98ff3; color: #fff; }
+
+    .encounters-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      min-height: 280px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .encounters-header {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .encounters-header strong {
+      font-size: 1.15rem;
+    }
+
+    .encounters-header small {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      margin-top: 4px;
+    }
+
+    .pokemon-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 14px;
+      width: 100%;
+    }
+
+    .pokemon-card {
+      background: #121418;
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .pokemon-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent-cyan);
+      background: var(--card-hover);
+      box-shadow: 0 4px 12px rgba(0, 240, 255, 0.15);
+    }
+
+    .pokemon-card.zygarde-card {
+      border-color: var(--accent-zygarde);
+      background: #0d1a0d;
+      box-shadow: 0 0 12px rgba(118, 255, 3, 0.2);
+    }
+
+    .pokemon-card img {
+      width: 105px;
+      height: 105px;
+      object-fit: contain;
+      margin-bottom: 8px;
+    }
+
+    .zygarde-icon-box {
+      width: 105px;
+      height: 105px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      margin-bottom: 8px;
+      filter: drop-shadow(0 0 10px rgba(118, 255, 3, 0.8));
+    }
+
+    .pokemon-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-transform: capitalize;
+      margin-bottom: 6px;
+    }
+
+    .catch-hint {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    .rarity-tag {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: #ffb703;
+      color: #000;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .rarity-tag.secret {
+      background: var(--accent-zygarde);
+      box-shadow: 0 0 8px rgba(118, 255, 3, 0.6);
+    }
+
+    .loader {
+      border: 3px solid #2b303c;
+      border-top: 3px solid var(--accent-cyan);
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      padding: 16px;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 14px;
+      max-width: 500px;
+      width: 100%;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.6);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 1.2rem;
+      color: var(--accent-green);
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .zygarde-alert {
+      display: none;
+      background: rgba(118, 255, 3, 0.12);
+      border: 2px solid var(--accent-zygarde);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .zygarde-alert.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .zygarde-alert-title {
+      font-weight: 900;
+      color: var(--accent-zygarde);
+      font-size: 1.05rem;
+    }
+
+    .zygarde-alert-desc {
+      font-size: 0.88rem;
+      color: #fff;
+      line-height: 1.35;
+    }
+
+    .dm-link-btn {
+      display: inline-block;
+      margin-top: 4px;
+      background: var(--accent-zygarde);
+      color: #000;
+      font-weight: 800;
+      font-size: 0.85rem;
+      padding: 8px 16px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+
+    .reddit-box {
+      width: 100%;
+      height: 130px;
+      background: #0f1115;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: #e0e6ed;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 0.82rem;
+      resize: none;
+      line-height: 1.4;
+    }
+
+    .copy-btn {
+      background: var(--accent-cyan);
+      color: #000;
+      border: none;
+      padding: 11px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h2>Explore Habitat Encounters</h2>
+    <p>Choose your zone carefully — one-time lock with no rerolls!</p>
+  </div>
+
+  <div class="locations-grid">
+    <button class="location-btn" id="btn-forge" onclick="selectLocation('forge')">
+      <div class="location-title">Forge of the Fiend</div>
+      <div class="types-list">
+        <span class="type-pill type-ghost">Ghost</span>
+        <span class="type-pill type-fire">Fire</span>
+        <span class="type-pill type-steel">Steel</span>
+      </div>
+    </button>
+
+    <button class="location-btn" id="btn-seas" onclick="selectLocation('seas')">
+      <div class="location-title">Storm Seas</div>
+      <div class="types-list">
+        <span class="type-pill type-water">Water</span>
+        <span class="type-pill type-electric">Electric</span>
+        <span class="type-pill type-dragon">Dragon</span>
+      </div>
+    </button>
+
+    <button class="location-btn" id="btn-islands" onclick="selectLocation('islands')">
+      <div class="location-title">Floating Islands</div>
+      <div class="types-list">
+        <span class="type-pill type-fairy">Fairy</span>
+        <span class="type-pill type-ground">Ground</span>
+        <span class="type-pill type-flying">Flying</span>
+      </div>
+    </button>
+  </div>
+
+  <div class="encounters-container" id="displayArea">
+    <span style="color: var(--text-muted); font-size: 0.95rem;">Select a location above to generate spawns.</span>
+  </div>
+</div>
+
+<div class="modal-overlay" id="catchModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modalTitle">🎉 Pokémon Caught!</h3>
+      <button class="close-btn" onclick="closeModal()">&times;</button>
+    </div>
+
+    <div class="zygarde-alert" id="zygardeAlert">
+      <div class="zygarde-alert-title">⚡ 1% CELL DISCOVERED ⚡</div>
+      <div class="zygarde-alert-desc">
+        You must DM <strong>u/Low-Okra-1286</strong> immediately on Reddit to claim your power-up!
+      </div>
+      <a class="dm-link-btn" href="https://www.reddit.com/message/compose/?to=Low-Okra-1286&subject=Zygarde%20Cell%20Power-Up" target="_blank">
+        ✉️ Direct Message u/Low-Okra-1286
+      </a>
+    </div>
+
+    <p style="font-size: 0.85rem; color: var(--text-muted);">
+      Copy this markdown comment to post in the Reddit thread:
+    </p>
+    <textarea class="reddit-box" id="redditOutput" readonly></textarea>
+    <button class="copy-btn" id="copyBtn" onclick="copyRedditComment()">Copy Reddit Comment</button>
+  </div>
+</div>
+
+<script>
+  var LOCATIONS = {
+    forge: { name: "Forge of the Fiend", types: ["ghost", "fire", "steel"] },
+    seas: { name: "Storm Seas", types: ["water", "electric", "dragon"] },
+    islands: { name: "Floating Islands", types: ["fairy", "ground", "flying"] }
+  };
+
+  var SPECIAL_PATTERNS = [
+    "articuno", "zapdos", "moltres", "mewtwo", "mew", "raikou", "entei", "suicune",
+    "lugia", "ho-oh", "celebi", "regirock", "regice", "registeel", "latias", "latios",
+    "kyogre", "groudon", "rayquaza", "jirachi", "deoxys", "uxie", "mesprit", "azelf",
+    "dialga", "palkia", "heatran", "regigigas", "giratina", "cresselia", "phione", "manaphy",
+    "darkrai", "shaymin", "arceus", "victini", "cobalion", "terrakion", "virizion",
+    "tornadus", "thundurus", "reshiram", "zekrom", "landorus", "kyurem", "keldeo",
+    "meloetta", "genesect", "xerneas", "yveltal", "zygarde", "diancie", "hoopa", "volcanion",
+    "type-null", "silvally", "tapu-koko", "tapu-lele", "tapu-bulu", "tapu-fini", "cosmog",
+    "cosmoem", "solgaleo", "lunala", "nihilego", "buzzwole", "pheromosa", "xurkitree",
+    "celesteela", "kartana", "guzzlord", "necrozma", "magearna", "marshadow", "poipole",
+    "naganadel", "stakataka", "blacephalon", "zeraora", "meltan", "melmetal", "zacian",
+    "zamazenta", "eternatus", "kubfu", "urshifu", "zarude", "regieleki", "regidrago",
+    "glastrier", "spectrier", "calyrex", "enamorus", "great-tusk", "scream-tail",
+    "brute-bonnet", "flutter-mane", "slither-wing", "sandy-shocks", "iron-treads",
+    "iron-bundle", "iron-hands", "iron-jugulis", "iron-moth", "iron-thorns", "wo-chien",
+    "chien-pao", "ting-lu", "chi-yu", "roaring-moon", "iron-valiant", "koraidon",
+    "miraidon", "walking-wake", "iron-leaves", "gouging-fire", "raging-bolt",
+    "iron-boulder", "iron-crown", "terapagos", "pecharunt"
+  ];
+
+  var currentKey = null;
+  var activeSpawns = [];
+  var isLocked = false;
+
+  function formatName(name) {
+    return name.split('-').map(function(s) {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }).join(' ');
+  }
+
+  function isSpecialPokemon(name) {
+    return SPECIAL_PATTERNS.some(function(pat) {
+      return name.toLowerCase().indexOf(pat) !== -1;
+    });
+  }
+
+  function selectLocation(key) {
+    if (isLocked) {
+      return;
+    }
+
+    currentKey = key;
+    isLocked = true;
+
+    var btns = document.querySelectorAll('.location-btn');
+    for (var i = 0; i < btns.length; i++) {
+      if (btns[i].id === 'btn-' + key) {
+        btns[i].classList.add('active');
+      } else {
+        btns[i].classList.remove('active');
+        btns[i].disabled = true;
+      }
+    }
+
+    var display = document.getElementById('displayArea');
+    display.innerHTML = '<div class="loader"></div>';
+
+    var selectedTypes = LOCATIONS[key].types;
+    var typePromises = selectedTypes.map(function(t) {
+      return fetch('https://pokeapi.co/api/v2/type/' + t).then(function(res) {
+        return res.json();
+      });
+    });
+
+    Promise.all(typePromises).then(function(typeDataArray) {
+      var speciesMap = new Map();
+
+      typeDataArray.forEach(function(tData) {
+        tData.pokemon.forEach(function(p) {
+          if (p.pokemon.name.indexOf("-totem") === -1 && p.pokemon.name.indexOf("-gmax") === -1) {
+            speciesMap.set(p.pokemon.name, p.pokemon.url);
+          }
+        });
+      });
+
+      var allEntries = Array.from(speciesMap.entries());
+      var selected = [];
+      var usedNames = new Set();
+
+      while (selected.length < 4 && usedNames.size < allEntries.length) {
+        var randomIndex = Math.floor(Math.random() * allEntries.length);
+        var entry = allEntries[randomIndex];
+        var name = entry[0];
+        var url = entry[1];
+
+        if (usedNames.has(name)) continue;
+
+        var isSpecial = isSpecialPokemon(name);
+        if (isSpecial && Math.random() < 0.85) {
+          continue;
+        }
+
+        usedNames.add(name);
+        selected.push({ name: name, url: url, isSpecial: isSpecial });
+      }
+
+      var detailPromises = selected.map(function(p) {
+        return fetch(p.url).then(function(res) {
+          return res.json();
+        });
+      });
+
+      return Promise.all(detailPromises).then(function(details) {
+        activeSpawns = details.map(function(p, idx) {
+          return {
+            name: formatName(p.name),
+            sprite: p.sprites.other["official-artwork"].front_default || p.sprites.front_default,
+            types: p.types.map(function(t) { return t.type.name; }),
+            isSpecial: selected[idx].isSpecial,
+            isZygardeCell: false
+          };
+        });
+
+        // 1% chance for Zygarde Cell (1% Form)
+        if (Math.random() < 0.01) {
+          activeSpawns.push({
+            name: "Zygarde Cell",
+            sprite: null,
+            types: ["ground", "dragon"],
+            isSpecial: true,
+            isZygardeCell: true
+          });
+        }
+
+        renderCards();
+      });
+    }).catch(function(err) {
+      console.error(err);
+      display.innerHTML = '<span style="color: #ff6b6b;">Failed to fetch encounters. Please reload page.</span>';
+    });
+  }
+
+  function renderCards() {
+    var display = document.getElementById('displayArea');
+    var html = '<div class="encounters-header">' +
+      '<strong>' + LOCATIONS[currentKey].name + '</strong>' +
+      '<small>Click a Pokémon to catch it!</small>' +
+      '</div><div class="pokemon-grid">';
+
+    activeSpawns.forEach(function(p, idx) {
+      var typeBadges = p.types.map(function(t) {
+        return '<span class="type-pill type-' + t + '">' + t + '</span>';
+      }).join('');
+
+      var rarityBadge = '';
+      if (p.isZygardeCell) {
+        rarityBadge = '<span class="rarity-tag secret">1% Cell</span>';
+      } else if (p.isSpecial) {
+        rarityBadge = '<span class="rarity-tag">Rare</span>';
+      }
+
+      var cardClass = p.isZygardeCell ? 'pokemon-card zygarde-card' : 'pokemon-card';
+      var visualElement = p.isZygardeCell
+        ? '<div class="zygarde-icon-box">🧬</div>'
+        : '<img src="' + p.sprite + '" alt="' + p.name + '" loading="lazy">';
+
+      html += '<div class="' + cardClass + '" onclick="catchPokemon(' + idx + ')">' +
+        rarityBadge +
+        visualElement +
+        '<div class="pokemon-name">' + p.name + '</div>' +
+        '<div class="types-list">' + typeBadges + '</div>' +
+        '<div class="catch-hint">⚾ Click to Catch</div>' +
+        '</div>';
+    });
+
+    html += '</div>';
+    display.innerHTML = html;
+  }
+
+  function catchPokemon(index) {
+    var caught = activeSpawns[index];
+    var loc = LOCATIONS[currentKey];
+
+    var typesFormatted = loc.types.map(function(t) { return t.toUpperCase(); }).join(' / ');
+    var selectionFormatted = activeSpawns.map(function(p) { return p.name; }).join(', ');
+    var alertBanner = document.getElementById('zygardeAlert');
+    var redditText = "";
+
+    if (caught.isZygardeCell) {
+      document.getElementById('modalTitle').innerText = "🧬 1% Zygarde Cell Found!";
+      document.getElementById('modalTitle').style.color = "var(--accent-zygarde)";
+      alertBanner.classList.add('active');
+
+      redditText = "**Visited:** " + loc.name + " (" + typesFormatted + ")\n" +
+                   "**Selection:** " + selectionFormatted + "\n" +
+                   "**Caught:** Zygarde Cell (1% Form) 🧬\n\n" +
+                   "⚠️ **SPECIAL EVENT:** DMing u/Low-Okra-1286 immediately for my power up!";
+    } else {
+      document.getElementById('modalTitle').innerText = "🎉 Caught " + caught.name + "!";
+      document.getElementById('modalTitle').style.color = "var(--accent-green)";
+      alertBanner.classList.remove('active');
+
+      redditText = "**Visited:** " + loc.name + " (" + typesFormatted + ")\n" +
+                   "**Selection:** " + selectionFormatted + "\n" +
+                   "**Caught:** " + caught.name + " 🎯";
+    }
+
+    document.getElementById('redditOutput').value = redditText;
+    document.getElementById('catchModal').classList.add('active');
+  }
+
+  function closeModal() {
+    document.getElementById('catchModal').classList.remove('active');
+    document.getElementById('copyBtn').innerText = 'Copy Reddit Comment';
+  }
+
+  function copyRedditComment() {
+    var textarea = document.getElementById('redditOutput');
+    textarea.select();
+    navigator.clipboard.writeText(textarea.value).then(function() {
+      var btn = document.getElementById('copyBtn');
+      btn.innerText = 'Copied to Clipboard! ✓';
+      setTimeout(function() {
+        btn.innerText = 'Copy Reddit Comment';
+      }, 2500);
+    });
+  }
+
+  window.selectLocation = selectLocation;
+  window.catchPokemon = catchPokemon;
+  window.closeModal = closeModal;
+  window.copyRedditComment = copyRedditComment;
+</script>
+
+</body>
+</html>
