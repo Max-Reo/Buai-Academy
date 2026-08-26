@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pokémon Draft Pick</title>
+  <style>
+    :root {
+      --bg-dark: #0f1115;
+      --card-bg: #1a1d24;
+      --card-hover: #222730;
+      --border-color: #2e3440;
+      --text-main: #f0f2f5;
+      --text-muted: #8c93a0;
+      --accent-cyan: #00f0ff;
+      --accent-green: #2ecc71;
+      --accent-purple: #a855f7;
+      --accent-zygarde: #76ff03;
+      --accent-red: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      padding: 24px 16px;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .header {
+      text-align: center;
+    }
+
+    .header h2 {
+      font-size: 1.6rem;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .header p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px 18px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .status-text {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .status-text strong {
+      color: var(--accent-cyan);
+    }
+
+    .btn {
+      background: var(--accent-cyan);
+      color: #000;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:hover:not(:disabled) {
+      filter: brightness(1.15);
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none;
+      filter: grayscale(0.8);
+    }
+
+    .btn-secondary {
+      background: #2b303c;
+      color: var(--text-main);
+    }
+
+    .btn-confirm {
+      background: var(--accent-green);
+      color: #000;
+    }
+
+    .draft-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 18px;
+      width: 100%;
+    }
+
+    .draft-card {
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 14px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .draft-card.selected {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.18);
+    }
+
+    .draft-card.dimmed {
+      opacity: 0.45;
+      filter: grayscale(0.5);
+    }
+
+    .pokemon-top {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 10px;
+    }
+
+    .pokemon-top img {
+      width: 130px;
+      height: 130px;
+      object-fit: contain;
+      margin-bottom: 8px;
+      transition: transform 0.2s ease;
+    }
+
+    .pokemon-top:hover img {
+      transform: scale(1.05);
+    }
+
+    .pokemon-name {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .section-title {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      font-weight: 800;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .options-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .moves-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .selectable-pill {
+      background: #121418;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+
+    .selectable-pill:hover:not(.disabled) {
+      border-color: rgba(255, 255, 255, 0.4);
+      background: var(--card-hover);
+    }
+
+    .selectable-pill.active-ability {
+      background: rgba(168, 85, 247, 0.15);
+      border-color: var(--accent-purple);
+      color: #d8b4fe;
+    }
+
+    .selectable-pill.active-move {
+      background: rgba(0, 240, 255, 0.15);
+      border-color: var(--accent-cyan);
+      color: #a5f3fc;
+    }
+
+    /* Zygarde 4th Option Card */
+    .zygarde-container {
+      width: 100%;
+      margin-top: 4px;
+    }
+
+    .zygarde-card {
+      background: #0d1a0d;
+      border: 2px dashed var(--accent-zygarde);
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 0 16px rgba(118, 255, 3, 0.15);
+    }
+
+    .zygarde-card:hover {
+      transform: translateY(-2px);
+      background: #132413;
+      box-shadow: 0 0 24px rgba(118, 255, 3, 0.35);
+      border-style: solid;
+    }
+
+    .zygarde-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .zygarde-icon {
+      font-size: 2.2rem;
+      filter: drop-shadow(0 0 8px rgba(118, 255, 3, 0.8));
+    }
+
+    .zygarde-info h4 {
+      font-size: 1.1rem;
+      color: var(--accent-zygarde);
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+
+    .zygarde-info p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .zygarde-badge {
+      background: var(--accent-zygarde);
+      color: #000;
+      font-weight: 800;
+      font-size: 0.78rem;
+      padding: 6px 12px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 0;
+      gap: 14px;
+    }
+
+    .loader {
+      border: 4px solid #2b303c;
+      border-top: 4px solid var(--accent-cyan);
+      border-radius: 50%;
+      width: 42px;
+      height: 42px;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      padding: 16px;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 14px;
+      max-width: 520px;
+      width: 100%;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 1.25rem;
+      color: var(--accent-green);
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.6rem;
+      cursor: pointer;
+    }
+
+    .zygarde-alert {
+      background: rgba(118, 255, 3, 0.12);
+      border: 2px solid var(--accent-zygarde);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .zygarde-alert-title {
+      font-weight: 900;
+      color: var(--accent-zygarde);
+      font-size: 1.05rem;
+    }
+
+    .zygarde-alert-desc {
+      font-size: 0.88rem;
+      color: #fff;
+      line-height: 1.4;
+    }
+
+    .dm-link-btn {
+      display: inline-block;
+      margin-top: 4px;
+      background: var(--accent-zygarde);
+      color: #000;
+      font-weight: 800;
+      font-size: 0.85rem;
+      padding: 8px 16px;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: filter 0.2s;
+    }
+
+    .dm-link-btn:hover {
+      filter: brightness(1.15);
+    }
+
+    .reddit-box {
+      width: 100%;
+      height: 160px;
+      background: #0f1115;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: #e0e6ed;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.82rem;
+      resize: none;
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h2>Pokémon Draft Pick</h2>
+    <p>Select 1 Pokémon, lock in 1 Ability, and choose 4 Moves to complete your build.</p>
+  </div>
+
+  <div class="toolbar">
+    <div class="status-text" id="statusText">
+      Loading draft resources...
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button class="btn btn-secondary" id="rerollBtn" onclick="handleReroll()">🔄 Reroll (1)</button>
+      <button class="btn btn-confirm" id="confirmBtn" onclick="openModal()" disabled>✓ Lock In Build</button>
+    </div>
+  </div>
+
+  <div id="contentArea">
+    <div class="loader-container">
+      <div class="loader"></div>
+      <span style="color: var(--text-muted); font-size: 0.9rem;">Fetching Pokémon registry...</span>
+    </div>
+  </div>
+</div>
+
+<!-- Standard Draft Confirmation Modal -->
+<div class="modal-overlay" id="draftModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>🎉 Build Finalized!</h3>
+      <button class="close-btn" onclick="closeModal('draftModal')">&times;</button>
+    </div>
+    <p style="font-size: 0.85rem; color: var(--text-muted);">
+      Copy this Markdown comment to submit your choice:
+    </p>
+    <textarea class="reddit-box" id="redditOutput" readonly></textarea>
+    <button class="btn" id="copyBtn" onclick="copyComment('redditOutput', 'copyBtn')" style="width: 100%; justify-content: center;">
+      Copy Reddit Comment
+    </button>
+  </div>
+</div>
+
+<!-- Zygarde Event Modal -->
+<div class="modal-overlay" id="zygardeModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 style="color: var(--accent-zygarde);">🧬 1% Cell Discovered!</h3>
+      <button class="close-btn" onclick="closeModal('zygardeModal')">&times;</button>
+    </div>
+
+    <div class="zygarde-alert">
+      <div class="zygarde-alert-title">⚡ POWER-UP UNLOCKED ⚡</div>
+      <div class="zygarde-alert-desc">
+        You must contact <strong>u/Low-Okra-1286</strong> immediately on Reddit to claim your power-up!
+      </div>
+      <a class="dm-link-btn" href="https://www.reddit.com/message/compose/?to=Low-Okra-1286&subject=Zygarde%20Cell%20Power-Up" target="_blank">
+        ✉️ Direct Message u/Low-Okra-1286
+      </a>
+    </div>
+
+    <p style="font-size: 0.85rem; color: var(--text-muted);">
+      Copy this markdown comment to log your claim in the thread:
+    </p>
+    <textarea class="reddit-box" id="zygardeRedditOutput" readonly></textarea>
+    <button class="btn" id="zygardeCopyBtn" onclick="copyComment('zygardeRedditOutput', 'zygardeCopyBtn')" style="width: 100%; justify-content: center; background: var(--accent-zygarde);">
+      Copy Reddit Comment
+    </button>
+  </div>
+</div>
+
+<script>
+  // Clean, official ability registry
+  var ABILITIES_POOL = [
+    // Gen III
+    "Air Lock", "Arena Trap", "Battle Armor", "Blaze", "Cacophony", "Chlorophyll", "Clear Body",
+    "Cloud Nine", "Color Change", "Compound Eyes", "Cute Charm", "Damp", "Drizzle", "Drought",
+    "Early Bird", "Effect Spore", "Flame Body", "Flash Fire", "Forecast", "Guts", "Huge Power",
+    "Hustle", "Hyper Cutter", "Illuminate", "Immunity", "Inner Focus", "Insomnia", "Intimidate",
+    "Keen Eye", "Levitate", "Lightning Rod", "Limber", "Liquid Ooze", "Magma Armor", "Magnet Pull",
+    "Marvel Scale", "Minus", "Natural Cure", "Oblivious", "Overgrow", "Own Tempo", "Pickup",
+    "Plus", "Poison Point", "Pressure", "Pure Power", "Rain Dish", "Rock Head", "Rough Skin",
+    "Run Away", "Sand Stream", "Sand Veil", "Serene Grace", "Shadow Tag", "Shed Skin", "Shell Armor",
+    "Shield Dust", "Soundproof", "Speed Boost", "Static", "Stench", "Sticky Hold", "Sturdy",
+    "Suction Cups", "Swarm", "Swift Swim", "Synchronize", "Thick Fat", "Torrent", "Trace",
+    "Truant", "Vital Spirit", "Volt Absorb", "Water Absorb", "Water Veil", "White Smoke", "Wonder Guard",
+    // Gen IV
+    "Adaptability", "Aftermath", "Anger Point", "Anticipation", "Bad Dreams", "Download", "Dry Skin",
+    "Filter", "Flower Gift", "Forewarn", "Frisk", "Gluttony", "Heatproof", "Honey Gather", "Hydration",
+    "Ice Body", "Iron Fist", "Klutz", "Leaf Guard", "Magic Guard", "Mold Breaker", "Motor Drive",
+    "Multitype", "No Guard", "Normalize", "Poison Heal", "Quick Feet", "Reckless", "Rivalry",
+    "Scrappy", "Simple", "Skill Link", "Slow Start", "Sniper", "Snow Cloak", "Snow Warning",
+    "Solar Power", "Solid Rock", "Stall", "Steadfast", "Storm Drain", "Super Luck", "Tangled Feet",
+    "Technician", "Tinted Lens", "Unaware", "Unburden",
+    // Gen V
+    "Analytic", "Big Pecks", "Contrary", "Cursed Body", "Defeatist", "Defiant", "Flare Boost",
+    "Friend Guard", "Harvest", "Healer", "Heavy Metal", "Illusion", "Imposter", "Infiltrator",
+    "Iron Barbs", "Justified", "Light Metal", "Magic Bounce", "Moody", "Moxie", "Multiscale",
+    "Mummy", "Overcoat", "Pickpocket", "Poison Touch", "Prankster", "Rattled", "Regenerator",
+    "Sand Force", "Sand Rush", "Sap Sipper", "Sheer Force", "Telepathy", "Teravolt", "Toxic Boost",
+    "Turboblaze", "Unnerve", "Victory Star", "Weak Armor", "Wonder Skin", "Zen Mode",
+    // Gen VI
+    "Aerilate", "Aroma Veil", "Aura Break", "Bulletproof", "Cheek Pouch", "Competitive", "Dark Aura",
+    "Delta Stream", "Desolate Land", "Fairy Aura", "Flower Veil", "Fur Coat", "Gale Wings", "Gooey",
+    "Grass Pelt", "Magician", "Mega Launcher", "Parental Bond", "Pixilate", "Primordial Sea",
+    "Protean", "Refrigerate", "Stance Change", "Strong Jaw", "Sweet Veil", "Symbiosis", "Tough Claws",
+    // Gen VII
+    "Battery", "Battle Bond", "Beast Boost", "Berserk", "Comatose", "Corrosion", "Dancer", "Dazzling",
+    "Disguise", "Electric Surge", "Emergency Exit", "Fluffy", "Full Metal Body", "Galvanize",
+    "Grassy Surge", "Innards Out", "Liquid Voice", "Long Reach", "Merciless", "Misty Surge",
+    "Neuroforce", "Power Construct", "Power of Alchemy", "Prism Armor", "Psychic Surge",
+    "Queenly Majesty", "Receiver", "RKS System", "Schooling", "Shadow Shield", "Shields Down",
+    "Slush Rush", "Soul-Heart", "Stakeout", "Stamina", "Steelworker", "Surge Surfer", "Tangling Hair",
+    "Triage", "Water Bubble", "Water Compaction", "Wimp Out",
+    // Gen VIII
+    "As One", "Ball Fetch", "Chilling Neigh", "Cotton Down", "Curious Medicine", "Dauntless Shield",
+    "Dragon's Maw", "Gorilla Tactics", "Grim Neigh", "Gulp Missile", "Hunger Switch", "Ice Face",
+    "Ice Scales", "Intrepid Sword", "Libero", "Mimicry", "Mirror Armor", "Neutralizing Gas",
+    "Pastel Veil", "Perish Body", "Power Spot", "Propeller Tail", "Punk Rock", "Quick Draw",
+    "Ripen", "Sand Spit", "Screen Cleaner", "Stalwart", "Steam Engine", "Steely Spirit", "Transistor",
+    "Unseen Fist", "Wandering Spirit",
+    // Gen IX
+    "Lingering Aroma", "Well-Baked Body", "Seed Sower", "Purifying Salt", "Electromorphosis",
+    "Wind Power", "Guard Dog", "Wind Rider", "Mycelium Might", "Anger Shell", "Opportunist",
+    "Rocky Payload", "Zero to Hero", "Earth Eater", "Toxic Debris", "Costar", "Sharpness",
+    "Commander", "Armor Tail", "Cud Chew", "Supreme Overlord", "Protosynthesis", "Quark Drive",
+    "Thermal Exchange", "Good as Gold", "Tablets of Ruin", "Sword of Ruin", "Vessel of Ruin",
+    "Beads of Ruin", "Orichalcum Pulse", "Hadron Engine", "Embody Aspect", "Toxic Chain",
+    "Hospitality", "Supersweet Syrup", "Mind's Eye", "Poison Puppeteer"
+  ];
+
+  // Hidden 5% bad prank pool
+  var BAD_ABILITIES_POOL = [
+    "Truant", "Slow Start", "Defeatist", "Stall", "Klutz",
+    "Normalize", "Honey Gather", "Ball Fetch", "Illuminate", "Run Away"
+  ];
+
+  var allPokemon = [];
+  var allMoves = [];
+  var isDataLoaded = false;
+  var rerollsLeft = 1;
+
+  var currentDraft = [];
+  var hasZygardeCell = false;
+  var selectedPokemonIdx = null;
+  var selectedAbility = null;
+  var selectedMoves = [];
+
+  function formatName(name) {
+    return name.split('-').map(function(s) {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }).join(' ');
+  }
+
+  function getRandomItems(pool, count) {
+    var shuffled = pool.slice();
+    for (var i = shuffled.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var temp = shuffled[i];
+      shuffled[i] = shuffled[j];
+      shuffled[j] = temp;
+    }
+    return shuffled.slice(0, count);
+  }
+
+  function initData() {
+    Promise.all([
+      fetch('https://pokeapi.co/api/v2/pokemon?limit=1025').then(function(res) { return res.json(); }),
+      fetch('https://pokeapi.co/api/v2/move?limit=920').then(function(res) { return res.json(); })
+    ]).then(function(results) {
+      allPokemon = results[0].results.map(function(p, idx) {
+        return { id: idx + 1, name: formatName(p.name) };
+      });
+      allMoves = results[1].results.map(function(m) {
+        return formatName(m.name);
+      });
+
+      isDataLoaded = true;
+      generateDraft();
+    }).catch(function(err) {
+      console.error(err);
+      document.getElementById('contentArea').innerHTML = 
+        '<div style="text-align: center; color: var(--accent-red); padding: 40px;">Failed to load resources. Please reload page.</div>';
+    });
+  }
+
+  function handleReroll() {
+    if (rerollsLeft <= 0 || !isDataLoaded) return;
+    rerollsLeft--;
+
+    var btn = document.getElementById('rerollBtn');
+    btn.innerText = '🔄 Reroll (0)';
+    btn.disabled = true;
+
+    generateDraft();
+  }
+
+  function generateDraft() {
+    if (!isDataLoaded) return;
+
+    selectedPokemonIdx = null;
+    selectedAbility = null;
+    selectedMoves = [];
+
+    var chosenPokemon = getRandomItems(allPokemon, 3);
+    var isBadRoll = Math.random() < 0.05;
+    hasZygardeCell = Math.random() < 0.01;
+
+    currentDraft = chosenPokemon.map(function(p) {
+      var abilities;
+      if (isBadRoll) {
+        abilities = getRandomItems(BAD_ABILITIES_POOL, 3);
+      } else {
+        abilities = getRandomItems(ABILITIES_POOL, 3);
+      }
+      var moves = getRandomItems(allMoves, 6);
+
+      return {
+        id: p.id,
+        name: p.name,
+        sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/' + p.id + '.png',
+        abilities: abilities,
+        moves: moves
+      };
+    });
+
+    renderDraft();
+    updateStatus();
+  }
+
+  function renderDraft() {
+    var container = document.getElementById('contentArea');
+    var html = '<div class="draft-grid">';
+
+    currentDraft.forEach(function(mon, pIdx) {
+      var isSelectedMon = selectedPokemonIdx === pIdx;
+      var isOtherMon = selectedPokemonIdx !== null && selectedPokemonIdx !== pIdx;
+
+      var cardClass = 'draft-card';
+      if (isSelectedMon) cardClass += ' selected';
+      if (isOtherMon) cardClass += ' dimmed';
+
+      html += '<div class="' + cardClass + '">';
+      
+      // Top Pokemon section
+      html += '<div class="pokemon-top" onclick="selectPokemon(' + pIdx + ')">' +
+        '<img src="' + mon.sprite + '" alt="' + mon.name + '" loading="lazy">' +
+        '<div class="pokemon-name">' + mon.name + '</div>' +
+        '</div>';
+
+      // Abilities section
+      html += '<div>' +
+        '<div class="section-title">Ability (Pick 1)</div>' +
+        '<div class="options-grid">';
+      
+      mon.abilities.forEach(function(ab) {
+        var isAbActive = isSelectedMon && selectedAbility === ab;
+        var pillClass = 'selectable-pill' + (isAbActive ? ' active-ability' : '');
+        html += '<div class="' + pillClass + '" onclick="selectAbility(' + pIdx + ', \'' + ab.replace(/'/g, "\\'") + '\')">' +
+          '<span>' + ab + '</span>' +
+          '<span>' + (isAbActive ? '●' : '○') + '</span>' +
+          '</div>';
+      });
+      html += '</div></div>';
+
+      // Moves section
+      html += '<div>' +
+        '<div class="section-title">' +
+        '<span>Moves (Pick 4)</span>' +
+        '<span>' + (isSelectedMon ? selectedMoves.length : 0) + '/4</span>' +
+        '</div>' +
+        '<div class="moves-grid">';
+      
+      mon.moves.forEach(function(mv) {
+        var isMvActive = isSelectedMon && selectedMoves.indexOf(mv) !== -1;
+        var pillClass = 'selectable-pill' + (isMvActive ? ' active-move' : '');
+        html += '<div class="' + pillClass + '" onclick="toggleMove(' + pIdx + ', \'' + mv.replace(/'/g, "\\'") + '\')">' +
+          '<span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + mv + '</span>' +
+          '<span>' + (isMvActive ? '✓' : '+') + '</span>' +
+          '</div>';
+      });
+      html += '</div></div>';
+
+      html += '</div>';
+    });
+
+    html += '</div>';
+
+    // 1% 4th Option Zygarde Cell
+    if (hasZygardeCell) {
+      html += '<div class="zygarde-container">' +
+        '<div class="zygarde-card" onclick="selectZygardeCell()">' +
+          '<div class="zygarde-left">' +
+            '<div class="zygarde-icon">🧬</div>' +
+            '<div class="zygarde-info">' +
+              '<h4>Option 4: Zygarde Cell (1% Form)</h4>' +
+              '<p>Rare anomaly discovered below the habitat. Click to claim power-up!</p>' +
+            '</div>' +
+          '</div>' +
+          '<div class="zygarde-badge">Special Anomaly</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    container.innerHTML = html;
+  }
+
+  function selectPokemon(idx) {
+    if (selectedPokemonIdx !== idx) {
+      selectedPokemonIdx = idx;
+      selectedAbility = null;
+      selectedMoves = [];
+      renderDraft();
+      updateStatus();
+    }
+  }
+
+  function selectAbility(pIdx, abilityName) {
+    if (selectedPokemonIdx !== pIdx) {
+      selectedPokemonIdx = pIdx;
+      selectedMoves = [];
+    }
+    selectedAbility = abilityName;
+    renderDraft();
+    updateStatus();
+  }
+
+  function toggleMove(pIdx, moveName) {
+    if (selectedPokemonIdx !== pIdx) {
+      selectedPokemonIdx = pIdx;
+      selectedAbility = null;
+      selectedMoves = [moveName];
+    } else {
+      var idx = selectedMoves.indexOf(moveName);
+      if (idx !== -1) {
+        selectedMoves.splice(idx, 1);
+      } else {
+        if (selectedMoves.length < 4) {
+          selectedMoves.push(moveName);
+        }
+      }
+    }
+    renderDraft();
+    updateStatus();
+  }
+
+  function selectZygardeCell() {
+    var poolSummary = currentDraft.map(function(d) { return d.name; }).join(", ");
+    var redditMarkdown = 
+      "### 🧬 SPECIAL ANOMALY ENCOUNTERED\n\n" +
+      "**Claimed:** Zygarde Cell (1% Form) 🧬\n" +
+      "**Status:** Messaging **u/Low-Okra-1286** immediately to receive my power-up!\n\n" +
+      "---\n" +
+      "*Draft Pool:* " + poolSummary;
+
+    document.getElementById('zygardeRedditOutput').value = redditMarkdown;
+    document.getElementById('zygardeModal').classList.add('active');
+  }
+
+  function updateStatus() {
+    var statusText = document.getElementById('statusText');
+    var confirmBtn = document.getElementById('confirmBtn');
+
+    if (selectedPokemonIdx === null) {
+      statusText.innerHTML = 'Select a Pokémon to begin building.';
+      confirmBtn.disabled = true;
+      return;
+    }
+
+    var monName = currentDraft[selectedPokemonIdx].name;
+    var abCount = selectedAbility ? 1 : 0;
+    var mvCount = selectedMoves.length;
+
+    statusText.innerHTML = 'Chosen: <strong>' + monName + '</strong> | Ability: <strong>' + 
+      abCount + '/1</strong> | Moves: <strong>' + mvCount + '/4</strong>';
+
+    confirmBtn.disabled = !(selectedPokemonIdx !== null && selectedAbility && selectedMoves.length === 4);
+  }
+
+  function openModal() {
+    if (selectedPokemonIdx === null || !selectedAbility || selectedMoves.length !== 4) return;
+
+    var mon = currentDraft[selectedPokemonIdx];
+    var poolSummary = currentDraft.map(function(d) { return d.name; }).join(", ");
+
+    var redditMarkdown = 
+      "### ⚔️ Draft Selection\n\n" +
+      "**Pokémon:** " + mon.name + "\n" +
+      "**Ability:** " + selectedAbility + "\n" +
+      "**Moveset:**\n" +
+      selectedMoves.map(function(m) { return "- " + m; }).join("\n") + "\n\n" +
+      "---\n" +
+      "*Draft Pool:* " + poolSummary;
+
+    document.getElementById('redditOutput').value = redditMarkdown;
+    document.getElementById('draftModal').classList.add('active');
+  }
+
+  function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+    document.getElementById('copyBtn').innerText = 'Copy Reddit Comment';
+    document.getElementById('zygardeCopyBtn').innerText = 'Copy Reddit Comment';
+  }
+
+  function copyComment(textareaId, btnId) {
+    var textarea = document.getElementById(textareaId);
+    textarea.select();
+    navigator.clipboard.writeText(textarea.value).then(function() {
+      var btn = document.getElementById(btnId);
+      btn.innerText = 'Copied to Clipboard! ✓';
+      setTimeout(function() {
+        btn.innerText = 'Copy Reddit Comment';
+      }, 2500);
+    });
+  }
+
+  window.selectPokemon = selectPokemon;
+  window.selectAbility = selectAbility;
+  window.toggleMove = toggleMove;
+  window.selectZygardeCell = selectZygardeCell;
+  window.handleReroll = handleReroll;
+  window.openModal = openModal;
+  window.closeModal = closeModal;
+  window.copyComment = copyComment;
+
+  initData();
+</script>
+
+</body>
+</html>
