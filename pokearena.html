@@ -1,0 +1,2533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pokémon Shorts Arena - 12 Fighter Master Arena</title>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Impact', 'Arial Black', -apple-system, sans-serif;
+    user-select: none;
+  }
+
+  body {
+    background: #06070a;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  /* 9:16 Shorts Framing */
+  .shorts-container {
+    position: relative;
+    width: 420px;
+    height: 760px;
+    background: radial-gradient(circle at center, #161b2e 0%, #07090e 100%);
+    border: 4px solid #23283c;
+    border-radius: 20px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.9), 0 0 30px rgba(59, 130, 246, 0.2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Screen Switcher */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+    background: radial-gradient(circle at center, #141829 0%, #080a12 100%);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  .screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.97);
+    z-index: 0;
+  }
+
+  /* Selection Screen Header */
+  .select-header {
+    padding: 10px 14px 4px 14px;
+    text-align: center;
+  }
+
+  .select-header h1 {
+    font-size: 18px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: linear-gradient(90deg, #38bdf8, #f43f5e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .select-header p {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: #94a3b8;
+    margin-top: 1px;
+  }
+
+  /* Matchup Preview Bars */
+  .matchup-preview {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 14px 8px 14px;
+  }
+
+  .team-card {
+    height: 52px;
+    border-radius: 8px;
+    padding: 3px 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    transition: all 0.2s;
+  }
+
+  .team-card.blue.active {
+    border: 2px solid #3b82f6;
+    background: linear-gradient(135deg, rgba(30, 58, 138, 0.6), rgba(15, 23, 42, 0.9));
+    box-shadow: 0 0 14px rgba(59, 130, 246, 0.4);
+  }
+
+  .team-card.red.active {
+    border: 2px solid #ef4444;
+    background: linear-gradient(135deg, rgba(153, 27, 27, 0.6), rgba(15, 23, 42, 0.9));
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.4);
+  }
+
+  .team-thumb {
+    width: 42px;
+    height: 42px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .team-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .team-meta {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .team-tag {
+    font-size: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .team-tag.blue { color: #60a5fa; }
+  .team-tag.red { color: #f87171; }
+
+  .team-name {
+    font-size: 11px;
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .vs-badge {
+    font-size: 12px;
+    font-weight: 900;
+    color: #facc15;
+    text-shadow: 0 0 8px rgba(250, 204, 21, 0.6);
+  }
+
+  /* 8x8 Grid */
+  .grid-wrapper {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2px 14px;
+  }
+
+  .fighter-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    gap: 4px;
+    width: 390px;
+    height: 390px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 6px;
+    border-radius: 12px;
+    border: 2px solid #283049;
+  }
+
+  .grid-slot {
+    position: relative;
+    border-radius: 6px;
+    background: #111625;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.1s, border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .grid-slot.selectable:hover {
+    transform: scale(1.08);
+    border-color: rgba(255, 255, 255, 0.4);
+    z-index: 2;
+  }
+
+  .grid-slot.selectable img {
+    width: 90%;
+    height: 90%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+  }
+
+  .grid-slot.locked {
+    cursor: not-allowed;
+    background: #090c15;
+    opacity: 0.35;
+  }
+
+  .grid-slot.locked span {
+    font-size: 14px;
+    color: #475569;
+    font-weight: bold;
+  }
+
+  .grid-slot.selected-blue {
+    border: 2px solid #3b82f6 !important;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.35), #0f172a);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
+    transform: scale(1.04);
+  }
+
+  .grid-slot.selected-red {
+    border: 2px solid #ef4444 !important;
+    background: radial-gradient(circle, rgba(239, 68, 68, 0.35), #0f172a);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+    transform: scale(1.04);
+  }
+
+  .grid-slot .slot-badge {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    font-size: 8px;
+    padding: 1px 3px;
+    border-radius: 3px;
+    line-height: 1;
+    font-weight: 900;
+  }
+
+  .slot-badge.blue { background: #3b82f6; color: #fff; }
+  .slot-badge.red { background: #ef4444; color: #fff; }
+
+  /* Selection Footer */
+  .select-footer {
+    padding: 10px 16px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .start-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    background: #1e293b;
+    cursor: not-allowed;
+    opacity: 0.5;
+    transition: all 0.2s;
+  }
+
+  .start-btn.ready {
+    opacity: 1.0;
+    cursor: pointer;
+    background: linear-gradient(90deg, #3b82f6, #ef4444);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 30px rgba(239, 68, 68, 0.4);
+    animation: pulseGlow 1.5s infinite;
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+  }
+
+  .instructions-bar {
+    text-align: center;
+    font-size: 10px;
+    color: #94a3b8;
+    letter-spacing: 0.5px;
+  }
+
+  /* Arena View */
+  .header-bar {
+    padding: 8px 14px;
+    text-align: center;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.35), rgba(239, 68, 68, 0.35));
+    border-bottom: 2px solid rgba(255,255,255,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .header-bar span {
+    font-size: 10px;
+    background: rgba(0,0,0,0.6);
+    padding: 2px 6px;
+    border-radius: 5px;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  .arena-wrapper {
+    position: relative;
+    width: 390px;
+    height: 390px;
+    margin: 6px auto 2px auto;
+    border: 3px solid #3b425b;
+    border-radius: 12px;
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.9), 0 8px 25px rgba(0,0,0,0.6);
+    background: 
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px),
+      radial-gradient(circle, #131a2c 10%, #080c16 90%);
+    background-size: 30px 30px, 30px 30px, 100% 100%;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .event-banner {
+    height: 22px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #facc15;
+    text-shadow: 0 0 8px rgba(250, 204, 21, 0.8);
+  }
+
+  /* Dual Move HUD */
+  .hud-container {
+    padding: 6px 12px 4px 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    background: rgba(8, 10, 18, 0.96);
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .fighter-card {
+    padding: 5px 7px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .fighter-card.blue {
+    background: linear-gradient(145deg, rgba(29, 78, 216, 0.35), rgba(5, 15, 35, 0.75));
+    border: 2px solid #3b82f6;
+  }
+
+  .fighter-card.red {
+    background: linear-gradient(145deg, rgba(185, 28, 28, 0.35), rgba(40, 5, 5, 0.75));
+    border: 2px solid #ef4444;
+  }
+
+  .fighter-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .fighter-name {
+    font-size: 12px;
+    letter-spacing: 0.5px;
+  }
+
+  .evo-badge {
+    font-size: 8px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.7);
+    color: #fef08a;
+    border: 1px solid rgba(250, 204, 21, 0.3);
+  }
+
+  .move-box {
+    background: rgba(0,0,0,0.5);
+    border-radius: 4px;
+    padding: 2px 5px;
+    font-size: 9px;
+    display: flex;
+    justify-content: space-between;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .move-box.locked {
+    opacity: 0.4;
+    font-style: italic;
+  }
+
+  .battle-footer {
+    padding: 6px 12px 10px 12px;
+    background: rgba(8, 10, 18, 0.96);
+  }
+
+  .back-btn {
+    width: 100%;
+    padding: 8px;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    background: #1e293b;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    color: #cbd5e1;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .back-btn:hover {
+    background: #334155;
+    color: #fff;
+    border-color: #94a3b8;
+  }
+</style>
+</head>
+<body>
+
+<div class="shorts-container">
+
+  <!-- ================= SCREEN 1: CHARACTER SELECTION ================= -->
+  <div class="screen" id="selectScreen">
+    <div class="select-header">
+      <h1>CHOOSE YOUR FIGHTERS</h1>
+      <p>CLICK 1: BLUE TEAM | CLICK 2: RED TEAM</p>
+    </div>
+
+    <!-- Matchup Preview -->
+    <div class="matchup-preview">
+      <div class="team-card blue" id="previewBlue">
+        <div class="team-thumb" id="thumbBlue">
+          <span style="color:#64748b; font-size:11px;">1P</span>
+        </div>
+        <div class="team-meta">
+          <span class="team-tag blue">BLUE TEAM</span>
+          <span class="team-name" id="nameBlue">SELECT FIGHTER</span>
+        </div>
+      </div>
+
+      <div class="vs-badge">VS</div>
+
+      <div class="team-card red" id="previewRed">
+        <div class="team-thumb" id="thumbRed">
+          <span style="color:#64748b; font-size:11px;">2P</span>
+        </div>
+        <div class="team-meta">
+          <span class="team-tag red">RED TEAM</span>
+          <span class="team-name" id="nameRed">SELECT FIGHTER</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8x8 Grid -->
+    <div class="grid-wrapper">
+      <div class="fighter-grid" id="fighterGrid"></div>
+    </div>
+
+    <!-- Start Bar -->
+    <div class="select-footer">
+      <button class="start-btn" id="startCombatBtn" disabled>START COMBAT</button>
+      <div class="instructions-bar" id="selectInstruction">Tap an active Pokémon icon to assign to Blue</div>
+    </div>
+  </div>
+
+
+  <!-- ================= SCREEN 2: COMBAT ARENA ================= -->
+  <div class="screen hidden" id="arenaScreen">
+    <div class="header-bar">
+      <span id="launch-angles">ANGLES: --° / --°</span>
+      <div>AUTONOMOUS ARENA</div>
+      <span id="timer-text">00:00</span>
+    </div>
+
+    <div class="arena-wrapper">
+      <canvas id="battleCanvas" width="390" height="390"></canvas>
+    </div>
+
+    <div class="event-banner" id="eventTicker">⚡ READY FOR SIMULATION ⚡</div>
+
+    <!-- Dual Move HUD Display -->
+    <div class="hud-container">
+      <div class="fighter-card blue">
+        <div class="fighter-title">
+          <span class="fighter-name" id="p1Name">FIGHTER 1</span>
+          <span class="evo-badge" id="p1EvoReq">EVO: --</span>
+        </div>
+        <div class="move-box" id="p1Move1">
+          <span>MOVE 1: --</span>
+          <span>--</span>
+        </div>
+        <div class="move-box locked" id="p1Move2">
+          <span>MOVE 2: --</span>
+          <span>🔒</span>
+        </div>
+      </div>
+
+      <div class="fighter-card red">
+        <div class="fighter-title">
+          <span class="fighter-name" id="p2Name">FIGHTER 2</span>
+          <span class="evo-badge" id="p2EvoReq">EVO: --</span>
+        </div>
+        <div class="move-box" id="p2Move1">
+          <span>MOVE 1: --</span>
+          <span>--</span>
+        </div>
+        <div class="move-box locked" id="p2Move2">
+          <span>MOVE 2: --</span>
+          <span>🔒</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="battle-footer">
+      <button class="back-btn" id="goBackBtn">
+        <span>◀</span> GO BACK TO SELECTION
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ==========================================================================
+   1. SOUND SYNTHESIZER ENGINE (Procedural Web Audio API)
+   ========================================================================== */
+class SoundEngine {
+  constructor() {
+    this.ctx = null;
+    this.jawsToggle = false;
+  }
+
+  init() {
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  }
+
+  playTone(type, startFreq, endFreq, duration, vol = 0.3) {
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(startFreq, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(10, endFreq), this.ctx.currentTime + duration);
+    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + duration);
+  }
+
+  playPunch() { this.playTone('triangle', 170, 35, 0.07, 0.35); }
+  playDash() { this.playTone('sine', 280, 850, 0.2, 0.3); }
+  playSlam() { this.playTone('sawtooth', 90, 15, 0.4, 0.7); }
+  playSnipe() { this.playTone('sine', 1200, 100, 0.35, 0.5); }
+  playSlip() { this.playTone('sine', 300, 600, 0.12, 0.2); }
+  playSting() { this.playTone('sawtooth', 650, 120, 0.1, 0.3); }
+  playPoisonTick() { this.playTone('sine', 420, 180, 0.08, 0.15); }
+  playDrill() { this.playTone('sawtooth', 320, 750, 0.18, 0.35); }
+  playBounce() { this.playTone('sine', 220, 80, 0.06, 0.2); }
+  playSplatter() { this.playTone('sawtooth', 320, 20, 0.6, 0.9); }
+  playWebAnchor() { this.playTone('triangle', 320, 780, 0.08, 0.25); }
+  playWebLock() { this.playTone('sawtooth', 880, 440, 0.15, 0.3); }
+  playWebHit() { this.playTone('square', 240, 80, 0.1, 0.35); }
+  playBoneThrow() { this.playTone('triangle', 480, 180, 0.14, 0.35); }
+  playBoneHit() { this.playTone('square', 320, 110, 0.09, 0.4); }
+  playBoneCatch() { this.playTone('sine', 520, 880, 0.12, 0.35); }
+  playBoneRush() { this.playTone('sawtooth', 180, 620, 0.22, 0.55); }
+  playDig() { this.playTone('sawtooth', 140, 45, 0.2, 0.4); }
+  playTrap() { this.playTone('sine', 300, 60, 0.35, 0.5); }
+  playSlash() { this.playTone('triangle', 750, 120, 0.12, 0.45); }
+  playPinMissile() { this.playTone('triangle', 850, 320, 0.08, 0.3); }
+  playPinHit() { this.playTone('sawtooth', 450, 140, 0.08, 0.35); }
+  playElectricZap() { this.playTone('sawtooth', 950, 150, 0.25, 0.45); }
+  playSelect() { this.playTone('sine', 440, 880, 0.08, 0.2); }
+
+  playJawsStep() {
+    if (!this.ctx) return;
+    this.jawsToggle = !this.jawsToggle;
+    const freq = this.jawsToggle ? 73.4 : 77.8;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+    gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.25);
+  }
+
+  playFire() {
+    if (!this.ctx) return;
+    const bufferSize = this.ctx.sampleRate * 0.25;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(900, this.ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(250, this.ctx.currentTime + 0.25);
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    noise.start();
+  }
+
+  playWater() {
+    if (!this.ctx) return;
+    const bufferSize = this.ctx.sampleRate * 0.2;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(800, this.ctx.currentTime);
+    filter.frequency.linearRampToValueAtTime(200, this.ctx.currentTime + 0.2);
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    noise.start();
+  }
+
+  playEvolution() {
+    if (!this.ctx) return;
+    [261.6, 329.6, 392.0, 523.2].forEach((freq, i) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.07);
+      gain.gain.setValueAtTime(0.2, this.ctx.currentTime + i * 0.07);
+      gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + i * 0.07 + 0.18);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(this.ctx.currentTime + i * 0.07);
+      osc.stop(this.ctx.currentTime + i * 0.07 + 0.18);
+    });
+  }
+}
+
+const sfx = new SoundEngine();
+
+// Official PokéAPI Artworks
+const SPRITES = {
+  charmander: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/4.png',
+  charmeleon: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/5.png',
+  charizard:  'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png',
+  riolu:      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/447.png',
+  lucario:    'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/448.png',
+  weedle:     'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/13.png',
+  kakuna:     'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/14.png',
+  beedrill:   'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/15.png',
+  sobble:     'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/816.png',
+  drizzile:   'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/817.png',
+  inteleon:   'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/818.png',
+  scyther:    'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/123.png',
+  kleavor:    'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/900.png',
+  gible:      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/443.png',
+  gabite:     'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/444.png',
+  garchomp:   'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/445.png',
+  tarountula: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/917.png',
+  spidops:    'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/918.png',
+  drilbur:    'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/529.png',
+  excadrill:  'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/530.png',
+  cubone:     'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/104.png',
+  marowak:    'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/105.png',
+  cacnea:     'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/331.png',
+  cacturne:   'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/332.png',
+  tynamo:     'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/602.png',
+  eelektrik:  'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/603.png',
+  eelektross: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/604.png',
+  ferroseed:  'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/597.png',
+  ferrothorn: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/598.png'
+};
+
+const images = {};
+for (const [key, url] of Object.entries(SPRITES)) {
+  const img = new Image();
+  img.crossOrigin = 'Anonymous';
+  img.src = url;
+  images[key] = img;
+}
+
+function calculateSobbleDamage(t) {
+  const pts = [
+    {t:0.0, d:0},{t:0.25, d:10},{t:0.5, d:20},{t:0.75, d:30},{t:1.0, d:40},
+    {t:1.25, d:50},{t:1.5, d:60},{t:1.75, d:80},{t:2.0, d:100},{t:2.25, d:120},
+    {t:2.5, d:140},{t:2.75, d:170},{t:3.0, d:200}
+  ];
+  if (t <= 0) return 0;
+  if (t >= 3.0) return 200;
+  for (let i = 0; i < pts.length - 1; i++) {
+    if (t >= pts[i].t && t <= pts[i+1].t) {
+      const r = (t - pts[i].t) / (pts[i+1].t - pts[i].t);
+      return Math.round(pts[i].d + r * (pts[i+1].d - pts[i].d));
+    }
+  }
+  return 200;
+}
+
+
+/* ==========================================================================
+   2. 12 POKÉMON FIGHTER FACTORIES
+   ========================================================================== */
+
+// 1. CHARIZARD LINE
+function createCharizardFighter(team, x, y) {
+  return {
+    id: 'charizard', team, name: 'CHARMANDER', stage: 1, hp: 1000, maxHp: 1000, radius: 28, speed: 2.2,
+    spriteKey: 'charmander', isDead: false, x, y, vx: 0, vy: 0, invincibleTimer: 0, wetTimer: 0, wetSlideTimer: 0, slideDir: 1, currentSlideWall: 'top', poisonTimer: 0, trappedTimer: 0, stunTimer: 0,
+    fireCooldown: 0, isBreathingFire: false, fireDuration: 0, fireTickTimer: 0, suplexCooldown: 0, inSuplex: false, suplexProgress: 0,
+
+    init(x, y) { this.x = x; this.y = y; this.hp = 1000; this.stage = 1; this.name = 'CHARMANDER'; this.spriteKey = 'charmander'; this.isDead = false; this.inSuplex = false; },
+    checkEvolution(arena) {
+      if (this.stage === 1 && this.hp <= 750) {
+        this.stage = 2; this.name = 'CHARMELEON'; this.spriteKey = 'charmeleon'; this.radius = 32; this.speed = 2.4;
+        arena.triggerEvolutionEvent('🔥 CHARMELEON EVOLVED! 🔥', this);
+      } else if (this.stage === 2 && this.hp <= 500) {
+        this.stage = 3; this.name = 'CHARIZARD'; this.spriteKey = 'charizard'; this.radius = 38; this.speed = 2.7;
+        arena.triggerEvolutionEvent('🐉 CHARIZARD AWAKENED! 🐉', this);
+      }
+    },
+    update(dt, target, arena) {
+      if (this.isDead || this.stunTimer > 0) return;
+      if (this.inSuplex) {
+        this.suplexProgress += dt / 2.0;
+        const loop = this.suplexProgress * Math.PI * 2;
+        this.x = this.suplexStartX + Math.sin(loop) * 45;
+        this.y = this.suplexStartY - Math.sin(this.suplexProgress * Math.PI) * 125 + (1 - Math.cos(loop)) * 15;
+        target.x = this.x + 6; target.y = this.y + 10;
+        if (this.suplexProgress >= 1.0) {
+          this.inSuplex = false; this.suplexCooldown = 5.0;
+          this.x = Math.max(30, Math.min(arena.size - 30, this.x));
+          this.y = Math.max(30, Math.min(arena.size - 30, this.y));
+          target.inSuplex = false;
+          target.takeDamage(200, arena, true);
+          sfx.playSlam(); arena.screenShake = 16;
+          arena.spawnShockwave(this.x, this.y, 100, '#f97316');
+          arena.bounceApart(this, target, 4.5);
+          arena.postEvent('💥 SEISMIC TOSS SLAM! -200 HP!');
+        }
+        return;
+      }
+      this.suplexCooldown -= dt;
+      const dx = target.x - this.x, dy = target.y - this.y, dist = Math.hypot(dx, dy);
+      if (this.stage === 3 && this.suplexCooldown <= 0 && dist < (this.radius + target.radius + 12) && target.trappedTimer <= 0 && !target.isUnderground && !target.inSuplex && !target.inDrillRun && !target.isReeling) {
+        this.inSuplex = true; target.inSuplex = true; this.suplexProgress = 0; this.suplexStartX = this.x; this.suplexStartY = this.y;
+        this.isBreathingFire = false; arena.postEvent('🌪️ CHARIZARD USED SEISMIC TOSS! 🌪️'); return;
+      }
+      if (!this.isBreathingFire) {
+        this.fireCooldown -= dt;
+        if (this.fireCooldown <= 0) { this.isBreathingFire = true; this.fireDuration = 1.5; this.fireTickTimer = 0.25; sfx.playFire(); }
+      } else {
+        this.fireDuration -= dt; this.fireTickTimer -= dt;
+        const angle = Math.atan2(dy, dx), range = this.stage === 1 ? 175 : 205;
+        for (let i = 0; i < 3; i++) {
+          const spread = (Math.random() - 0.5) * 0.45;
+          arena.spawnParticle({ type: 'fire', x: this.x + Math.cos(angle)*this.radius, y: this.y + Math.sin(angle)*this.radius, vx: Math.cos(angle+spread)*6.5, vy: Math.sin(angle+spread)*6.5, radius: 8+(this.stage*3), color: this.stage===3?'#ff2a00':'#ffaa00', life: 0.45 });
+        }
+        if (this.fireTickTimer <= 0) {
+          this.fireTickTimer = 0.25;
+          if (dist < range && target.invincibleTimer <= 0 && !target.isDead && !target.isUnderground && !target.inSuplex && !target.inDrillRun) {
+            target.takeDamage(this.stage === 1 ? 20 : (this.stage === 2 ? 40 : 80), arena, true);
+          }
+        }
+        if (this.fireDuration <= 0) { this.isBreathingFire = false; this.fireCooldown = 1.25; }
+      }
+    },
+    getHUD() {
+      const evo = this.stage === 1 ? 'EVO: 750 HP' : (this.stage === 2 ? 'EVO: 500 HP' : 'EVO: MAX');
+      const m1Dmg = this.stage === 1 ? '6x 20 DMG' : (this.stage === 2 ? '6x 40 DMG' : '6x 80 DMG');
+      const m2Det = this.stage === 3 ? (this.suplexCooldown <= 0 ? 'READY (200)' : this.suplexCooldown.toFixed(1)+'s') : '🔒 Charizard';
+      return { name: this.name, evo, m1Name: this.stage===1?'Ember':(this.stage===2?'Flamethrower':'Fire Blast'), m1Dmg, m2Name: 'Seismic Toss', m2Detail: m2Det, m2Locked: this.stage < 3 };
+    }
+  };
+}
+
+// 2. LUCARIO LINE (Evo @ 12 punches, Smart Prediction Trajectory)
+function createLucarioFighter(team, x, y) {
+  return {
+    id: 'lucario', team, name: 'RIOLU', stage: 1, hp: 1000, maxHp: 1000, radius: 26, speed: 2.4,
+    spriteKey: 'riolu', isDead: false, x, y, vx: 0, vy: 0, invincibleTimer: 0, wetTimer: 0, wetSlideTimer: 0, slideDir: 1, currentSlideWall: 'top', poisonTimer: 0, trappedTimer: 0, stunTimer: 0,
+    punchCount: 0, inCombo: false, comboHitsRemaining: 0, comboHitTimer: 0, comboCooldown: 0, dashCooldown: 0, isDashing: false,
+
+    init(x, y) { this.x = x; this.y = y; this.hp = 1000; this.stage = 1; this.name = 'RIOLU'; this.spriteKey = 'riolu'; this.isDead = false; this.punchCount = 0; },
+    checkEvolution(arena) {
+      if (this.stage === 1 && this.punchCount >= 12) {
+        this.stage = 2; this.name = 'LUCARIO'; this.spriteKey = 'lucario'; this.radius = 32; this.speed = 2.8;
+        arena.triggerEvolutionEvent('⚡ LUCARIO EVOLVED! ⚡', this);
+      }
+    },
+    startCombo(target) {
+      if (!this.inCombo && this.comboCooldown <= 0 && !target.isUnderground && !target.inSuplex && !target.inDrillRun) {
+        this.inCombo = true;
+        this.comboHitsRemaining = this.stage === 1 ? 3 : 4;
+        this.comboHitTimer = 0;
+      }
+    },
+    onWallBounce(wallId, hitX, hitY, arena) {
+      // Hidden Smart Prediction: Predict where the enemy is going to be rather than where they are
+      if (this.stage === 1) {
+        const enemy = this === arena.blue ? arena.red : arena.blue;
+        if (enemy && !enemy.isDead) {
+          const curAng = Math.atan2(this.vy, this.vx);
+          const flightTime = Math.hypot(enemy.x - this.x, enemy.y - this.y) / (this.speed * 60 || 1);
+          const predX = enemy.x + (enemy.vx || 0) * flightTime * 60;
+          const predY = enemy.y + (enemy.vy || 0) * flightTime * 60;
+          const predAng = Math.atan2(predY - this.y, predX - this.x);
+
+          let diff = predAng - curAng;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          const maxAdjust = 10 * (Math.PI / 180);
+          const adj = Math.max(-maxAdjust, Math.min(maxAdjust, diff));
+          const newAng = curAng + adj, spd = Math.hypot(this.vx, this.vy);
+          this.vx = Math.cos(newAng) * spd; this.vy = Math.sin(newAng) * spd;
+        }
+      }
+    },
+    update(dt, target, arena) {
+      if (this.isDead || this.stunTimer > 0 || target.inDrillRun || this.inSuplex) return;
+      this.dashCooldown -= dt; this.comboCooldown -= dt;
+      const dx = target.x - this.x, dy = target.y - this.y, dist = Math.hypot(dx, dy);
+
+      if (this.stage === 2 && !this.isDashing && !this.inCombo && this.dashCooldown <= 0 && dist > 140 && !target.isUnderground && !target.inSuplex) {
+        this.isDashing = true; this.dashTargetX = target.x; this.dashTargetY = target.y; this.dashCooldown = 2.0;
+        sfx.playDash(); arena.postEvent('💨 EXTREME SPEED DASH! 💨');
+      }
+      if (this.isDashing) {
+        this.x += (this.dashTargetX - this.x) * 0.25; this.y += (this.dashTargetY - this.y) * 0.25;
+        arena.spawnParticle({ type: 'aura', x: this.x, y: this.y, radius: this.radius, color: '#60a5fa', life: 0.25 });
+        if (dist < (this.radius + target.radius + 15)) {
+          this.isDashing = false; target.takeDamage(100, arena, true);
+          sfx.playPunch(); arena.screenShake = 8; arena.spawnShockwave(target.x, target.y, 60, '#38bdf8');
+          arena.bounceApart(this, target, 4.2);
+        }
+        return;
+      }
+      if (this.inCombo) {
+        this.comboHitTimer -= dt;
+        if (this.comboHitTimer <= 0 && this.comboHitsRemaining > 0) {
+          this.comboHitsRemaining--; this.punchCount++; this.comboHitTimer = 0.08;
+          const dmg = this.stage === 1 ? 25 : 50;
+          target.takeDamage(dmg, arena, true); sfx.playPunch(); arena.screenShake = 3;
+          arena.damageNumbers.push({ text: '👊', x: (this.x+target.x)/2 + (Math.random()*16-8), y: (this.y+target.y)/2 - 10, color: '#ffffff', alpha: 1.0, vy: -1.2, life: 0.5 });
+          this.checkEvolution(arena);
+        }
+        if (this.comboHitsRemaining <= 0) { this.inCombo = false; this.comboCooldown = 0.8; arena.bounceApart(this, target, 4.2); }
+      }
+    },
+    getHUD() {
+      const evo = this.stage === 1 ? `EVO: ${this.punchCount}/12 PUNCH` : 'EVO: MAX';
+      const m1Name = this.stage === 1 ? 'Comet Punch' : 'Meteor Mash';
+      const m1Dmg = this.stage === 1 ? '3x 25 DMG' : '4x 50 DMG';
+      const m2Det = this.stage === 2 ? (this.dashCooldown <= 0 ? 'READY (100)' : this.dashCooldown.toFixed(1)+'s') : '🔒 Lucario';
+      return { name: this.name, evo, m1Name, m1Dmg, m2Name: 'Extreme Speed', m2Detail: m2Det, m2Locked: this.stage < 2 };
+    }
+  };
+}
+
+// 3. BEEDRILL LINE
+function createBeedrillFighter(team, x, y) {
+  return {
+    id: 'beedrill', team, name: 'WEEDLE', stage: 1, hp: 1000, maxHp: 1000, radius: 26, speed: 2.2,
+    spriteKey: 'weedle', isDead: false, x, y, vx: 0, vy: 0, invincibleTimer: 0, wetTimer: 0, wetSlideTimer: 0, slideDir: 1, currentSlideWall: 'top', poisonTimer: 0, trappedTimer: 0, stunTimer: 0,
+    matchTimer: 0, poisonStingCooldown: 2.5, kakunaTimer: 0, furyAttackTimer: 0, drillRunCooldown: 0, inDrillRun: false, drillRunTimer: 0,
+
+    init(x, y) { this.x = x; this.y = y; this.hp = 1000; this.stage = 1; this.name = 'WEEDLE'; this.spriteKey = 'weedle'; this.isDead = false; this.matchTimer = 0; this.inDrillRun = false; },
+    update(dt, target, arena) {
+      if (this.isDead || this.stunTimer > 0 || this.inSuplex) return;
+      if (this.stage === 1) {
+        this.matchTimer += dt; this.poisonStingCooldown -= dt;
+        if (this.matchTimer >= 10.0) {
+          this.stage = 2; this.name = 'KAKUNA'; this.spriteKey = 'kakuna'; this.radius = 28; this.kakunaTimer = 5.0; this.vx = 0; this.vy = 0;
+          arena.triggerEvolutionEvent('🛡️ WEEDLE EVOLVED INTO KAKUNA! 🛡️', this); return;
+        }
+        const dx = target.x - this.x, dy = target.y - this.y;
+        if ((Math.abs(dx) < 32 || Math.abs(dy) < 32) && this.poisonStingCooldown <= 0 && !target.isUnderground && !target.inSuplex) {
+          this.poisonStingCooldown = 2.5; sfx.playSting();
+          const dirX = Math.abs(dx) < 32 ? 0 : Math.sign(dx), dirY = Math.abs(dx) < 32 ? Math.sign(dy) : 0;
+          arena.spawnProjectile({ type: 'triangle_needle', x: this.x, y: this.y, vx: dirX * 7.5, vy: dirY * 7.5, length: 18, width: 8, radius: 8, color: '#a855f7', owner: this, damage: 50, appliesPoison: true, life: 1.5 });
+          arena.postEvent('💉 WEEDLE USED POISON STING!');
+        }
+      } else if (this.stage === 2) {
+        this.kakunaTimer -= dt; this.vx = 0; this.vy = 0;
+        if (this.kakunaTimer <= 0) {
+          this.stage = 3; this.name = 'BEEDRILL'; this.spriteKey = 'beedrill'; this.radius = 32; this.speed = 2.7;
+          arena.triggerEvolutionEvent('🐝 KAKUNA EVOLVED INTO BEEDRILL! 🐝', this); arena.setRandomTrajectory(this);
+        }
+      } else if (this.stage === 3) {
+        this.drillRunCooldown -= dt; this.furyAttackTimer -= dt;
+        const dx = target.x - this.x, dy = target.y - this.y;
+
+        // Smart Lead Calculation on Fury Attack (up to +-10 deg)
+        if (this.furyAttackTimer <= 0 && !this.inDrillRun && !target.isUnderground && !target.inSuplex) {
+          this.furyAttackTimer = 0.5;
+          const directAngle = Math.atan2(dy, dx);
+          const flightTime = Math.hypot(dx, dy) / (8.0 * 60);
+          const predX = target.x + target.vx * flightTime * 60;
+          const predY = target.y + target.vy * flightTime * 60;
+          const predAngle = Math.atan2(predY - this.y, predX - this.x);
+          let diff = predAngle - directAngle;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          const maxAdjust = 10 * (Math.PI / 180);
+          const angle = directAngle + Math.max(-maxAdjust, Math.min(maxAdjust, diff));
+
+          arena.spawnProjectile({ type: 'triangle_needle', x: this.x, y: this.y, vx: Math.cos(angle)*8.0, vy: Math.sin(angle)*8.0, length: 16, width: 6, radius: 6, color: '#ffffff', owner: this, damage: 15, life: 1.2 });
+        }
+
+        if ((Math.abs(dx) < 34 || Math.abs(dy) < 34) && this.drillRunCooldown <= 0 && !this.inDrillRun && !target.isUnderground && !target.inSuplex) {
+          this.inDrillRun = true; this.drillRunTimer = 1.5; this.drillRunStartX = this.x; this.drillRunStartY = this.y;
+          this.drillRunCooldown = 3.5; this.hasDealtDrillDamage = false; sfx.playDrill();
+          this.drillRunDir = Math.abs(dx) < 34 ? { x: 0, y: Math.sign(dy) } : { x: Math.sign(dx), y: 0 };
+          arena.postEvent('🌀 BEEDRILL USED DRILL RUN! 🌀');
+        }
+
+        if (this.inDrillRun) {
+          this.drillRunTimer -= dt; const progress = 1.0 - (this.drillRunTimer / 1.5);
+          arena.spawnParticle({ type: 'afterimage', spriteKey: this.spriteKey, x: this.x, y: this.y, radius: this.radius, life: 0.18 });
+          const maxDist = arena.size;
+          if (progress <= 0.5) {
+            const p = progress / 0.5;
+            this.x = this.drillRunStartX + (this.drillRunDir.x * maxDist * p);
+            this.y = this.drillRunStartY + (this.drillRunDir.y * maxDist * p);
+            if (!this.hasDealtDrillDamage && Math.hypot(target.x - this.x, target.y - this.y) < (this.radius + target.radius + 15) && !target.inSuplex) {
+              target.takeDamage(125, arena, true); sfx.playDrill(); arena.screenShake = 12;
+              arena.spawnShockwave(target.x, target.y, 70, '#facc15'); this.hasDealtDrillDamage = true;
+            }
+          } else {
+            const p = (progress - 0.5) / 0.5;
+            this.x = (this.drillRunStartX - this.drillRunDir.x * maxDist) + (this.drillRunDir.x * maxDist * p);
+            this.y = (this.drillRunStartY - this.drillRunDir.y * maxDist) + (this.drillRunDir.y * maxDist * p);
+          }
+          if (this.drillRunTimer <= 0) { this.x = this.drillRunStartX; this.y = this.drillRunStartY; this.inDrillRun = false; arena.setRandomTrajectory(this); }
+        }
+      }
+    },
+    getHUD() {
+      let evo = this.stage === 1 ? `EVO: ${Math.max(0, 10.0 - this.matchTimer).toFixed(1)}s` : (this.stage === 2 ? `HARDEN: ${Math.max(0, this.kakunaTimer).toFixed(1)}s` : 'EVO: MAX');
+      const m1Name = this.stage === 1 ? 'Poison Sting' : (this.stage === 2 ? 'Harden' : 'Fury Attack');
+      const m1Dmg = this.stage === 1 ? '50 + DOT' : (this.stage === 2 ? '-50% DMG' : '15 DMG (0.5s)');
+      const m2Det = this.stage === 3 ? (this.drillRunCooldown <= 0 ? 'READY (125)' : this.drillRunCooldown.toFixed(1)+'s') : '🔒 Beedrill';
+      return { name: this.name, evo, m1Name, m1Dmg, m2Name: 'Drill Run', m2Detail: m2Det, m2Locked: this.stage < 3 };
+    }
+  };
+}
+
+// 4. INTELEON LINE
+function createInteleonFighter(team, x, y) {
+  return {
+    id: 'inteleon', team, name: 'SOBBLE', stage: 1, hp: 1000, maxHp: 1000, radius: 26, speed: 2.3,
+    spriteKey: 'sobble', isDead: false, x, y, vx: 0, vy: 0, invincibleTimer: 0, wetTimer: 0, wetSlideTimer: 0, slideDir: 1, currentSlideWall: 'top', poisonTimer: 0, trappedTimer: 0, stunTimer: 0,
+    bumpCount: 0, chargeTime: 0, shootCooldown: 0, wallBumpCooldown: 0,
+    soakCooldown: 3.0, soakLanded: false, evoPendingTimer: 0,
+    snipeChargeTime: 0, snipeCooldown: 0,
+
+    init(x, y) { this.x = x; this.y = y; this.hp = 1000; this.stage = 1; this.name = 'SOBBLE'; this.spriteKey = 'sobble'; this.isDead = false; this.bumpCount = 0; },
+    onInterrupted() { if (this.stage === 1) this.chargeTime = 0; },
+    update(dt, target, arena) {
+      if (this.isDead || this.stunTimer > 0 || this.inSuplex) return;
+
+      if (this.stage === 1) {
+        if (this.wallBumpCooldown > 0) this.wallBumpCooldown -= dt;
+        if (this.shootCooldown > 0) this.shootCooldown -= dt;
+        else {
+          this.chargeTime = Math.min(3.0, this.chargeTime + dt);
+          if (Math.random() < 0.4) arena.spawnParticle({ type: 'water_bubble', x: this.x+(Math.random()*24-12), y: this.y+(Math.random()*24-12), vx: (Math.random()-0.5)*1.5, vy: -1.0, radius: 2+this.chargeTime*1.2, color: '#38bdf8', life: 0.35 });
+          if (this.chargeTime >= 3.0) {
+            sfx.playWater(); const dmg = calculateSobbleDamage(this.chargeTime), angle = Math.atan2(target.y - this.y, target.x - this.x);
+            arena.spawnProjectile({ type: 'water_blast', x: this.x, y: this.y, vx: Math.cos(angle)*14.0, vy: Math.sin(angle)*14.0, radius: 6+this.chargeTime*1.5, color: '#38bdf8', owner: this, damage: dmg, life: 1.4 });
+            this.chargeTime = 0; this.shootCooldown = 1.5; arena.postEvent('💧 SOBBLE USED WATER GUN! 💧');
+          }
+        }
+      } else if (this.stage === 2) {
+        this.soakCooldown -= dt;
+        if (this.soakCooldown <= 0 && !target.isUnderground && !target.inSuplex) {
+          this.soakCooldown = 3.0; sfx.playWater();
+          const angle = Math.atan2(target.y - this.y, target.x - this.x);
+          arena.spawnProjectile({ type: 'soak_wave', x: this.x, y: this.y, vx: Math.cos(angle)*8.5, vy: Math.sin(angle)*8.5, radius: 26, color: '#38bdf8', owner: this, damage: 0, appliesWet: true, life: 1.5 });
+          arena.postEvent('🌊 DRIZZILE USED SOAK WAVE! 🌊');
+        }
+        if (this.evoPendingTimer > 0) {
+          this.evoPendingTimer -= dt;
+          if (this.evoPendingTimer <= 0) {
+            this.stage = 3; this.name = 'INTELEON'; this.spriteKey = 'inteleon'; this.radius = 32; this.speed = 2.6;
+            arena.triggerEvolutionEvent('🎯 DRIZZILE EVOLVED INTO INTELEON! 🎯', this); arena.setRandomTrajectory(this);
+          }
+        }
+      } else if (this.stage === 3) {
+        if (this.snipeCooldown > 0) {
+          this.snipeCooldown -= dt; this.x += this.vx * dt * 60; this.y += this.vy * dt * 60;
+        } else {
+          this.vx = 0; this.vy = 0; this.snipeChargeTime = Math.min(3.0, this.snipeChargeTime + dt);
+          arena.spawnParticle({ type: 'snipe_charge', x: this.x, y: this.y, radius: 12+this.snipeChargeTime*6, color: '#0284c7', life: 0.15 });
+          if (this.snipeChargeTime >= 3.0) {
+            sfx.playSnipe(); arena.screenShake = 10; const angle = Math.atan2(target.y - this.y, target.x - this.x);
+            arena.spawnProjectile({ type: 'hydro_snipe', x: this.x, y: this.y, vx: Math.cos(angle)*14.0, vy: Math.sin(angle)*14.0, radius: 13, color: '#0284c7', owner: this, damage: 300, life: 1.2 });
+            this.snipeChargeTime = 0; this.snipeCooldown = 1.5; arena.setRandomTrajectory(this);
+            arena.postEvent('🌊 INTELEON USED HYDRO SNIPE! (300 DMG) 🌊');
+          }
+        }
+      }
+    },
+    onWallBounce(wallId, hitX, hitY, arena) {
+      if (this.stage === 1 && this.wallBumpCooldown <= 0) {
+        this.bumpCount++; this.wallBumpCooldown = 0.3; sfx.playBounce();
+        arena.damageNumbers.push({ text: '💥', x: this.x, y: this.y - 15, color: '#38bdf8', alpha: 1.0, vy: -1.0, life: 0.6 });
+        if (this.bumpCount >= 5) {
+          this.stage = 2; this.name = 'DRIZZILE'; this.spriteKey = 'drizzile'; this.radius = 28;
+          sfx.playSlip(); arena.triggerEvolutionEvent('💧 SOBBLE EVOLVED INTO DRIZZILE! 💧', this);
+        }
+      }
+    },
+    onSoakLanded(target, arena) {
+      if (this.stage === 2 && !this.soakLanded) {
+        this.soakLanded = true; this.evoPendingTimer = 3.0; sfx.playSlip();
+        for (let i = 0; i < 5; i++) arena.damageNumbers.push({ text: '😂', x: this.x+(Math.random()*30-15), y: this.y-20-i*14, color: '#facc15', alpha: 1.0, vy: -1.0, life: 1.5 });
+        arena.postEvent('💦 ENEMY IS SOAKED! DRIZZILE LAUGHS & EVOLVES IN 3s! 😂');
+      }
+    },
+    getHUD() {
+      let evo = this.stage === 1 ? `EVO: ${this.bumpCount}/5 BUMPS` : (this.stage === 2 ? `EVO: ${this.soakLanded ? 1 : 0}/1 SOAK` : 'EVO: MAX');
+      const m1Name = this.stage === 1 ? 'Water Gun' : (this.stage === 2 ? 'Soak' : 'Hydro Snipe');
+      const m1Dmg = this.stage === 1 ? `${this.chargeTime.toFixed(1)}s (${calculateSobbleDamage(this.chargeTime)} DMG)` : (this.stage === 2 ? 'Soak Wave (5s)' : `${this.snipeChargeTime.toFixed(1)}s (300 DMG)`);
+      const m2Det = this.stage === 3 ? (this.snipeCooldown > 0 ? `MOVING ${this.snipeCooldown.toFixed(1)}s` : 'IMMOBILE') : '🔒 Inteleon';
+      return { name: this.name, evo, m1Name, m1Dmg, m2Name: 'Focus Energy', m2Detail: m2Det, m2Locked: this.stage < 3 };
+    }
+  };
+}
+
+// 5. KLEAVOR LINE
+function createKleavorFighter(team, x, y) {
+  return {
+    id: 'kleavor', team, name: 'SCYTHER', stage: 1, hp: 1000, maxHp: 1000, radius: 26, speed: 2.5,
+    spriteKey: 'scyther', isDead: false, x, y, vx: 0, vy: 0, invincibleTimer: 0, wetTimer: 0, wetSlideTimer: 0, slideDir: 1, currentSlideWall: 'top', poisonTimer: 0, trappedTimer: 0, stunTimer: 0,
+    dualWingbeatCooldown: 0, stoneAxeCooldown: 0, enemyWallBumpsObserved: 0,
+
+    init(x, y) { this.x = x; this.y = y; this.hp = 1000; this.stage = 1; this.name = 'SCYTHER'; this.spriteKey = 'scyther'; this.isDead = false; this.enemyWallBumpsObserved = 0; },
+    checkEvolution(arena) {
+      if (this.stage === 1 && this.enemyWallBumpsObserved >= 6) {
+        this.stage = 2; this.name = 'KLEAVOR'; this.spriteKey = 'kleavor'; this.radius = 34; this.speed = 2.4;
+        arena.triggerEvolutionEvent('🪓 SCYTHER EVOLVED INTO KLEAVOR! 🪓', this);
+      }
+    },
+    update(dt, target, arena) {
+      if (this.isDead || this.stunTimer > 0 || this.inSuplex) return;
+      this.dualWingbeatCooldown -= dt; this.stoneAxeCooldown -= dt;
+      const dx = target.x - this.x, dy = target.y - this.y, dist = Math.hypot(dx, dy);
+
+      // Scyther: Dual Wingbeat (2 swings from right to left in a cone, 45 dmg each)
+      if (this.stage === 1 && this.dualWingbeatCooldown <= 0 && dist < (this.radius + target.radius + 24) && !target.isUnderground && !target.inSuplex) {
+        this.dualWingbeatCooldown = 1.2;
+        const angle = Math.atan2(dy, dx);
+        target.takeDamage(45, arena, true); sfx.playSlash();
+        arena.spawnParticle({ type: 'coneSlash', x: this.x, y: this.y, angle, radius: 45, startOffset: 0.6, endOffset: -0.6, color: '#ffffff', life: 0.12 });
+        setTimeout(() => {
+          if (!target.isDead && !this.isDead && !target.inSuplex) {
+            target.takeDamage(45, arena, true); sfx.playSlash(); arena.screenShake = 5;
+            arena.spawnParticle({ type: 'coneSlash', x: this.x, y: this.y, angle, radius: 50, startOffset: 0.8, endOffset: -0.8, color: '#38bdf8', life: 0.12 });
+          }
+        }, 110);
+        arena.postEvent('🪽 DUAL WINGBEAT! (2x 45 DMG / RIGHT-TO-LEFT)');
+        arena.bounceApart(this, target, 3.5);
+      } 
+      // Kleavor: Stone Axe (100 DMG left-to-right swing + 2 jumping Stealth Rocks)
+      else if (this.stage === 2 && this.stoneAxeCooldown <= 0 && dist < (this.radius + target.radius + 40) && !target.isUnderground && !target.inSuplex) {
+        this.stoneAxeCooldown = 2.0; target.takeDamage(100, arena, true);
+        sfx.playSlam(); arena.screenShake = 12;
+        const angle = Math.atan2(dy, dx);
+        arena.spawnParticle({ type: 'coneSlash', x: this.x, y: this.y, angle, radius: 65, startOffset: -0.9, endOffset: 0.9, color: '#f59e0b', life: 0.3 });
+        arena.postEvent('🪓 STONE AXE CLEAVE! -100 HP + STEALTH ROCKS SCATTERED!');
+
+        // 2 Stealth Rocks jumping out over 0.5s, then wobbling for 0.75s
+        for (let i = 0; i < 2; i++) {
+          const rAng = Math.random() * Math.PI * 2, rDist = 45 + Math.random() * 55;
+          const targetLandingX = Math.max(25, Math.min(arena.size - 25, target.x + Math.cos(rAng) * rDist));
+          const targetLandingY = Math.max(25, Math.min(arena.size - 25, target.y + Math.sin(rAng) * rDist));
+          arena.activeStealthRocks.push({
+            startX: target.x, startY: target.y,
+            targetX: targetLandingX, targetY: targetLandingY,
+            x: target.x, y: target.y,
+            jumpTimer: 0.5, wobbleTimer: 0.75,
+            radius: 12, damage: 40, armed: false, owner: this
+          });
+        }
+        arena.bounceApart(this, target, 4.2);
+      }
+    },
+    getHUD() {
+      const evo = this.stage === 1 ? `EVO: ${this.enemyWallBumpsObserved}/6 WALL BUMPS` : 'EVO: MAX';
+      const m1Name = this.stage === 1 ? 'Dual Wingbeat' : 'Stone Axe';
+      const m1Dmg = this.stage === 1 ? '2x 45 DMG' : '100 DMG Cleave';
+      const m2Det = this.stage === 2 ? '2x 40 DMG TRAP' : '🔒 Kleavor';
+      return { name: this.name, evo, m1Name, m1Dmg, m2Name: 'Stealth Rock', m2Detail: m2Det, m2Locked: this.stage < 2 };
+    }
+  };
+}
+
+// 6. GARCHOMP LINE
+function createGarchompFighter(team, x, y) {
+  return {
+    id: 'garchomp', team, name: 'GIBLE', stage: 1, hp: 1000, maxHp: 1000, radius: 26, speed: 2.3,
+    spriteKey: 'gible', isDead: false, x, y, vx: 0, vy: 0, invincibleTimer: 0, wetTimer: 0, wetSlideTimer: 0, slideDir: 1, currentSlideWall: 'top', poisonTimer: 0, trappedTimer: 0, stunTimer: 0,
+    sandAttackTimer: 2.5, sandHitsLanded: 0,
+    digCooldown: 3.0, isUnderground: false, digActiveTimer: 0, jawsAudioTimer: 0, bonusDigDmg: 0, evoPendingTimer: 0, swordSpawnTimer: 1.5, gabiteHitDone: false,
+
+    init(x, y) { this.x = x; this.y = y; this.hp = 1000; this.stage = 1; this.name = 'GIBLE'; this.spriteKey = 'gible'; this.isDead = false; this.sandHitsLanded = 0; this.bonusDigDmg = 0; this.isUnderground = false; this.digCooldown = 3.0; this.gabiteHitDone = false; },
+    checkEvolution(arena) {
+      if (this.stage === 1 && this.sandHitsLanded >= 3) {
+        this.stage = 2; this.name = 'GABITE'; this.spriteKey = 'gabite'; this.radius = 30; this.speed = 2.5;
+        this.digCooldown = 3.0; this.isUnderground = false; arena.triggerEvolutionEvent('🦈 GIBLE EVOLVED INTO GABITE! 🦈', this);
+      }
+    },
+    update(dt, target, arena) {
+      if (this.isDead || this.stunTimer > 0 || this.inSuplex) return;
+
+      // Stage 1: Gible Half-Map Sand Attack (+1 tile wider & longer)
+      if (this.stage === 1) {
+        this.sandAttackTimer -= dt;
+        if (this.sandAttackTimer <= 0 && !target.isUnderground && !target.inSuplex) {
+          this.sandAttackTimer = 2.5;
+          const angle = Math.atan2(target.y - this.y, target.x - this.x);
+          const reach = 225, spread = Math.PI * 0.45;
+          arena.spawnParticle({ type: 'sandCone', x: this.x, y: this.y, angle, reach, spread, color: 'rgba(217, 119, 6, 0.45)', life: 0.35 });
+          sfx.playWater();
+
+          const dist = Math.hypot(target.x - this.x, target.y - this.y);
+          const angDiff = Math.abs(Math.atan2(target.y - this.y, target.x - this.x) - angle);
+          if (dist < reach && angDiff < spread/2 && target.invincibleTimer <= 0) {
+            target.stunTimer = 0.5; target.vx = 0; target.vy = 0;
+            setTimeout(() => { if (!target.isDead) arena.setRandomTrajectory(target); }, 500);
+            this.sandHitsLanded++; arena.postEvent('⏳ WIDE SAND ATTACK HIT! ENEMY STUNNED & FLUNG!');
+            this.checkEvolution(arena);
+          }
+        }
+      }
+
+      // Stage 2 & 3: Gabite / Garchomp Dig
+      if (this.stage >= 2) {
+        if (this.stage === 3) {
+          this.swordSpawnTimer -= dt;
+          if (this.swordSpawnTimer <= 0) {
+            this.swordSpawnTimer = 1.5;
+            arena.activeSwords.push({ x: 30 + Math.random() * (arena.size - 60), y: 30 + Math.random() * (arena.size - 60), radius: 14 });
+            arena.postEvent('⚔️ SWORDS DANCE ITEM SPAWNED (EVERY 1.5s)!');
+          }
+        }
+
+        if (!this.isUnderground) {
+          this.digCooldown -= dt;
+          if (this.digCooldown <= 0) {
+            this.isUnderground = true;
+            this.digActiveTimer = this.stage === 2 ? 4.0 : 6.0; // Max 4s for Gabite, max 6s for Garchomp
+            sfx.playDig(); arena.postEvent(`🕳️ ${this.name} DUG UNDERGROUND!`);
+          }
+        } else {
+          this.digActiveTimer -= dt; this.jawsAudioTimer -= dt;
+          if (this.jawsAudioTimer <= 0) { this.jawsAudioTimer = 0.6; sfx.playJawsStep(); }
+
+          const angle = Math.atan2(target.y - this.y, target.x - this.x);
+          this.x += Math.cos(angle) * 1.35 * dt * 60;
+          this.y += Math.sin(angle) * 1.35 * dt * 60;
+
+          const dist = Math.hypot(target.x - this.x, target.y - this.y);
+          const hitTarget = (dist < 26 && !target.inSuplex && !target.inDrillRun);
+
+          if (hitTarget || this.digActiveTimer <= 0) {
+            this.isUnderground = false;
+            this.digCooldown = 3.0;
+
+            if (hitTarget) {
+              const eruptDmg = 233 + this.bonusDigDmg;
+              target.takeDamage(eruptDmg, arena, true);
+              sfx.playSlam(); arena.screenShake = 14;
+              arena.spawnShockwave(this.x, this.y, 85, '#d97706');
+              arena.postEvent(`💥 ${this.name} ERUPTED FROM DIG! -${eruptDmg} HP!`);
+              arena.bounceApart(this, target, 4.5);
+
+              if (this.stage === 2 && !this.gabiteHitDone) {
+                this.gabiteHitDone = true;
+                this.evoPendingTimer = 3.0;
+                arena.postEvent('⚡ DIG CONNECTED (1/1)! GABITE EVOLVING IN 3s! ⚡');
+              }
+            } else {
+              arena.postEvent(`🕳️ ${this.name} RESURFACED (3.0s COOLDOWN)`);
+            }
+          }
+        }
+
+        if (this.stage === 2 && this.evoPendingTimer > 0) {
+          this.evoPendingTimer -= dt;
+          if (this.evoPendingTimer <= 0) {
+            this.stage = 3; this.name = 'GARCHOMP'; this.spriteKey = 'garchomp'; this.radius = 36; this.speed = 2.8;
+            this.isUnderground = false; this.digCooldown = 3.0;
+            arena.triggerEvolutionEvent('🐉 GARCHOMP AWAKENED! SWORDS DANCE (1.5s) UNLOCKED! 🐉', this);
+          }
+        }
+      }
+    },
+    getHUD() {
+      let evo = this.stage === 1 ? `EVO: ${this.sandHitsLanded}/3 SAND HITS` : (this.stage === 2 ? `EVO: ${this.gabiteHitDone ? 1 : 0}/1 DIG` : 'EVO: MAX');
+      const m1Name = this.stage === 1 ? 'Sand Attack' : 'Dig';
+      const m1Dmg = this.stage === 1 ? 'Stun + Flung' : (this.stage === 2 ? '233 DMG' : `${233 + this.bonusDigDmg} DMG (+${this.bonusDigDmg})`);
+      const m2Det = this.stage === 3 ? `+${this.bonusDigDmg} BONUS DMG` : '🔒 Garchomp';
+      return { name: this.name, evo, m1Name, m1Dmg, m2Name: 'Swords Dance', m2Detail: m2Det, m2Locked: this.stage < 3 };
+    }
+  };
+}
+
+// 7. SPIDOPS LINE (White strings for Tarountula, Green for Spidops, Red for Opponent)
+function createSpidopsFighter(team, x, y) {
+  return {
+    id: 'spidops', team, name: 'TAROUNTULA', stage: 1, hp: 1000, maxHp: 1000, radius: 26, speed: 2.4,
+    spriteKey: 'tarountula', isDead: false, x, y, vx: 0, vy: 0, invincibleTimer: 0, wetTimer: 0, wetSlideTimer: 0, slideDir: 1, currentSlideWall: 'top', poisonTimer: 0, trappedTimer: 0, stunTimer: 0,
+    currentAnchor: null, stringHitCount: 0,
+
+    init(x, y) { this.x = x; this.y = y; this.hp = 1000; this.stage = 1; this.name = 'TAROUNTULA'; this.spriteKey = 'tarountula'; this.isDead = false; this.currentAnchor = null; this.stringHitCount = 0; },
+    onWallBounce(wallId, hitX, hitY, arena) {
+      if (!this.currentAnchor) {
+        this.currentAnchor = { x: hitX, y: hitY, wallId }; sfx.playWebAnchor();
+        arena.spawnShockwave(hitX, hitY, 30, this.stage === 1 ? '#ffffff' : '#bef264'); arena.postEvent('🕸️ 1ST WALL ANCHORED!');
+      } else if (this.currentAnchor.wallId !== wallId) {
+        // Tarountula strings are WHITE (#f8fafc), Spidops own strings are GREEN (#84cc16)
+        const strColor = this.stage === 1 ? '#f8fafc' : '#84cc16';
+        arena.addPermanentString({ p1: { x: this.currentAnchor.x, y: this.currentAnchor.y }, p2: { x: hitX, y: hitY }, damage: 20, color: strColor, hasTargetInside: false, owner: this, targetOnlyEnemy: true });
+        sfx.playWebLock(); arena.spawnShockwave(hitX, hitY, 35, strColor);
+        arena.postEvent(`🕸️ ${this.stage === 1 ? 'STRING SHOT' : 'SILK TRAP'} SET! (20 DMG)`);
+        this.currentAnchor = null;
+      }
+    },
+    onEnemyHitString(arena) {
+      this.stringHitCount++;
+      if (this.stage === 1 && this.stringHitCount >= 6) {
+        this.stage = 2; this.name = 'SPIDOPS'; this.spriteKey = 'spidops'; this.radius = 32; this.speed = 2.6;
+        arena.triggerEvolutionEvent('🕷️ SPIDOPS EVOLVED! STRING SHOT WEAVES ACTIVE! 🕷️', this);
+      }
+    },
+    update(dt, target, arena) {},
+    getHUD() {
+      const evo = this.stage === 1 ? `EVO: ${this.stringHitCount}/6 HITS` : 'EVO: MAX';
+      const m2Det = this.stage === 2 ? 'ENEMY WEAVES (RED)' : '🔒 Spidops';
+      return { name: this.name, evo, m1Name: this.stage === 1 ? 'String Shot' : 'Silk Trap', m1Dmg: '20 DMG Traps', m2Name: 'String Shot', m2Detail: m2Det, m2Locked: this.stage < 2 };
+    }
+  };
+}
+
+// 8. EXCADRILL LINE
+function createExcadrillFighter(team, x, y) {
+  return {
+    id: 'excadrill', team, name: 'DRILBUR', stage: 1, hp: 1000, maxHp: 1000, radius: 26, speed: 2.4,
+    spriteKey: 'drilbur', isDead: false, x, y, vx: 0, vy: 0, invincibleTimer: 0, wetTimer: 0, wetSlideTimer: 0, slideDir: 1, currentSlideWall: 'top', poisonTimer: 0, trappedTimer: 0, stunTimer: 0,
+    digCooldown: 5.0, trappedEnemies: 0, evoPendingTimer: 0, slashCooldown: 0, isStationaryAttacking: false,
+
+    init(x, y) { this.x = x; this.y = y; this.hp = 1000; this.stage = 1; this.name = 'DRILBUR'; this.spriteKey = 'drilbur'; this.isDead = false; this.digCooldown = 5.0; this.trappedEnemies = 0; },
+    onTrapEnemy(arena) {
+      this.trappedEnemies++;
+      if (this.stage === 1 && this.evoPendingTimer <= 0) {
+        this.evoPendingTimer = 1.5; arena.postEvent('⏳ ENEMY IN BURROW! DRILBUR EVOLVING IN 1.5s!');
+      }
+    },
+    executeSlash(target, arena) {
+      this.slashCooldown = 0.75; target.takeDamage(80, arena, true); sfx.playSlash(); arena.screenShake = 6;
+      arena.spawnParticle({ type: 'circularSlash', x: this.x, y: this.y, radius: this.radius + 35, maxRadius: this.radius + 51, color: '#fef08a', life: 0.22 });
+      arena.postEvent('⚔️ EXCADRILL USED SLASH! -80 HP!');
+    },
+    update(dt, target, arena) {
+      if (this.isDead || this.stunTimer > 0 || this.inSuplex) return;
+      if (this.stage === 1 && this.evoPendingTimer > 0) {
+        this.evoPendingTimer -= dt;
+        if (this.evoPendingTimer <= 0) {
+          this.stage = 2; this.name = 'EXCADRILL'; this.spriteKey = 'excadrill'; this.radius = 32; this.speed = 2.7;
+          arena.triggerEvolutionEvent('⚡ EXCADRILL EVOLVED! SLASH UNLOCKED! ⚡', this);
+        }
+      }
+      this.digCooldown -= dt;
+      if (this.digCooldown <= 0) {
+        this.digCooldown = 5.0;
+        arena.addBurrow(this.x, this.y, this);
+        sfx.playDig(); arena.spawnShockwave(this.x, this.y, 40, '#b45309');
+        arena.postEvent('🕳️ MOVE 1: DIG! BURROW CREATED ON ARENA!');
+      }
+      if (this.slashCooldown > 0) this.slashCooldown -= dt;
+      const dist = Math.hypot(target.x - this.x, target.y - this.y);
+
+      if (this.isStationaryAttacking) {
+        this.vx = 0; this.vy = 0;
+        if (target.trappedTimer > 0) {
+          if (this.slashCooldown <= 0) this.executeSlash(target, arena);
+        } else {
+          this.isStationaryAttacking = false; arena.setRandomTrajectory(this); arena.bounceApart(this, target, 3.2);
+        }
+        return;
+      }
+      if (this.stage === 2 && dist < (this.radius + target.radius + 30) && this.slashCooldown <= 0 && !target.isUnderground && !target.inSuplex) {
+        this.executeSlash(target, arena);
+        if (target.trappedTimer > 0) { this.isStationaryAttacking = true; this.vx = 0; this.vy = 0; }
+        else { arena.bounceApart(this, target, 3.2); }
+      }
+    },
+    getHUD() {
+      const evo = this.stage === 1 ? `EVO: ${this.trappedEnemies}/1 TRAPPED` : 'EVO: MAX';
+      const m1Dmg = '100 DMG Burrow';
+      const m2Det = this.stage === 2 ? (this.slashCooldown <= 0 ? 'READY (80)' : `${this.slashCooldown.toFixed(1)}s`) : '🔒 Excadrill';
+      return { name: this.name, evo, m1Name: 'Dig', m1Dmg, m2Name: 'Slash', m2Detail: m2Det, m2Locked: this.stage < 2 };
+    }
+  };
+}
+
+// 9. MAROWAK LINE (Smart Prediction on Bonemerang Throw)
+function createMarowakFighter(team, x, y) {
+  return {
+    id: 'marowak', team, name: 'CUBONE', stage: 1, hp: 1000, maxHp: 1000, radius: 26, speed: 2.4,
+    spriteKey: 'cubone', isDead: false, x, y, vx: 0, vy: 0, invincibleTimer: 0, wetTimer: 0, wetSlideTimer: 0, slideDir: 1, currentSlideWall: 'top', poisonTimer: 0, trappedTimer: 0, stunTimer: 0,
+    boneClubCooldown: 1.0, boneClubThrown: false, boneCaught: false, evoPendingTimer: 0,
+    comboState: 'IDLE', comboTimer: 0, bonemerangDuration: 0.6, bonemerangCooldown: 0.5,
+    bonemerangPos: { x: 0, y: 0, angle: 0 }, outwardHitDone: false, returnHitDone: false,
+
+    init(x, y) { this.x = x; this.y = y; this.hp = 1000; this.stage = 1; this.name = 'CUBONE'; this.spriteKey = 'cubone'; this.isDead = false; this.boneClubCooldown = 1.0; this.boneClubThrown = false; },
+    startBonemerang(target, arena) {
+      this.comboState = 'OUTWARD'; this.comboTimer = this.bonemerangDuration; this.outwardStartX = this.x; this.outwardStartY = this.y;
+      
+      // Smart Lead Prediction for Marowak Bonemerang (similar to Beedrill)
+      const dx = target.x - this.x, dy = target.y - this.y;
+      const directAngle = Math.atan2(dy, dx);
+      const flightTime = 0.6; // Outward flight duration
+      const predX = target.x + (target.vx || 0) * flightTime * 60;
+      const predY = target.y + (target.vy || 0) * flightTime * 60;
+      const predAngle = Math.atan2(predY - this.y, predX - this.x);
+      let diff = predAngle - directAngle;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      const maxAdjust = 15 * (Math.PI / 180);
+      const angle = directAngle + Math.max(-maxAdjust, Math.min(maxAdjust, diff));
+
+      this.outwardTargetX = Math.max(20, Math.min(arena.size - 20, this.x + Math.cos(angle) * 310));
+      this.outwardTargetY = Math.max(20, Math.min(arena.size - 20, this.y + Math.sin(angle) * 310));
+      this.bonemerangPos.x = this.x; this.bonemerangPos.y = this.y;
+      this.outwardHitDone = false; this.returnHitDone = false; sfx.playBoneThrow();
+      arena.postEvent('🦴 MAROWAK THREW BONEMERANG! (75 DMG)');
+    },
+    executeBoneRush(target, arena) {
+      this.comboState = 'BONE_RUSH'; this.comboTimer = 0.5; sfx.playBoneRush(); arena.screenShake = 10;
+      arena.spawnParticle({ type: 'boneRushSpin', x: this.x, y: this.y, radius: this.radius + 35, maxRadius: this.radius + 50, color: '#f43f5e', life: 0.35 });
+      if (Math.hypot(target.x - this.x, target.y - this.y) < (this.radius + target.radius + 45) && !target.isUnderground && !target.inSuplex) {
+        target.takeDamage(100, arena, true); arena.postEvent('💥 360° BONE RUSH SWUNG! -100 HP + KNOCKBACK!');
+        arena.bounceApart(this, target, 4.8);
+      }
+    },
+    update(dt, target, arena) {
+      if (this.isDead || this.stunTimer > 0 || this.inSuplex) return;
+      if (this.stage === 1) {
+        if (!this.boneClubThrown) {
+          this.boneClubCooldown -= dt;
+          if (this.boneClubCooldown <= 0) {
+            this.boneClubThrown = true; const angle = Math.atan2(target.y - this.y, target.x - this.x);
+            arena.bouncingBone = { x: this.x + Math.cos(angle)*(this.radius+12), y: this.y + Math.sin(angle)*(this.radius+12), vx: Math.cos(angle)*4.8, vy: Math.sin(angle)*4.8, speed: 4.8, radius: 14, rotation: 0, armTimer: 0.6, hitEnemyCooldown: 0, active: true, owner: this };
+            sfx.playBoneThrow(); arena.postEvent('🦴 CUBONE USED BONE CLUB! BOUNCING BONE ACTIVE!');
+          }
+        }
+        if (this.evoPendingTimer > 0) {
+          this.evoPendingTimer -= dt;
+          if (this.evoPendingTimer <= 0) {
+            this.stage = 2; this.name = 'MAROWAK'; this.spriteKey = 'marowak'; this.radius = 32; this.speed = 2.6;
+            this.comboState = 'IDLE'; this.bonemerangCooldown = 0.4; arena.triggerEvolutionEvent('⚡ CUBONE EVOLVED INTO MAROWAK! ⚡', this);
+          }
+        }
+      } else if (this.stage === 2) {
+        this.bonemerangPos.angle += dt * 26;
+        if (this.comboState === 'IDLE' || this.comboState === 'COOLDOWN') {
+          this.bonemerangCooldown -= dt; if (this.bonemerangCooldown <= 0) this.startBonemerang(target, arena);
+        } else if (this.comboState === 'OUTWARD') {
+          this.comboTimer -= dt; const p = 1.0 - (this.comboTimer / this.bonemerangDuration);
+          this.bonemerangPos.x = this.outwardStartX + (this.outwardTargetX - this.outwardStartX) * Math.sin(p * Math.PI / 2);
+          this.bonemerangPos.y = this.outwardStartY + (this.outwardTargetY - this.outwardStartY) * Math.sin(p * Math.PI / 2);
+          if (!this.outwardHitDone && Math.hypot(target.x - this.bonemerangPos.x, target.y - this.bonemerangPos.y) < (target.radius + 18) && !target.isUnderground && !target.inSuplex) {
+            this.outwardHitDone = true; target.takeDamage(75, arena, true); sfx.playBoneHit(); arena.spawnShockwave(this.bonemerangPos.x, this.bonemerangPos.y, 40, '#f43f5e');
+          }
+          if (this.comboTimer <= 0) { this.comboState = 'RETURN'; this.comboTimer = this.bonemerangDuration; this.returnStartX = this.bonemerangPos.x; this.returnStartY = this.bonemerangPos.y; }
+        } else if (this.comboState === 'RETURN') {
+          this.comboTimer -= dt; const p = 1.0 - (this.comboTimer / this.bonemerangDuration);
+          this.bonemerangPos.x = this.returnStartX + (this.x - this.returnStartX) * (p * p);
+          this.bonemerangPos.y = this.returnStartY + (this.y - this.returnStartY) * (p * p);
+          if (!this.returnHitDone && Math.hypot(target.x - this.bonemerangPos.x, target.y - this.bonemerangPos.y) < (target.radius + 18) && !target.isUnderground && !target.inSuplex) {
+            this.returnHitDone = true; target.takeDamage(75, arena, true); sfx.playBoneHit();
+          }
+          if (this.comboTimer <= 0 || Math.hypot(this.x - this.bonemerangPos.x, this.y - this.bonemerangPos.y) < (this.radius + 14)) {
+            sfx.playBoneCatch(); this.executeBoneRush(target, arena);
+          }
+        } else if (this.comboState === 'BONE_RUSH') {
+          this.comboTimer -= dt; if (this.comboTimer <= 0) { this.comboState = 'COOLDOWN'; this.bonemerangCooldown = 0.75; }
+        }
+      }
+    },
+    getHUD() {
+      const evo = this.stage === 1 ? `EVO: ${this.boneCaught ? 1 : 0}/1 CATCH` : 'EVO: MAX';
+      const m1Dmg = this.stage === 1 ? '50 DMG Bounce' : '2x 75 DMG';
+      const m2Det = this.stage === 2 ? '100 DMG + KNOCKBACK' : '🔒 Marowak';
+      return { name: this.name, evo, m1Name: this.stage === 1 ? 'Bone Club' : 'Bonemerang', m1Dmg, m2Name: 'Bone Rush', m2Detail: m2Det, m2Locked: this.stage < 2 };
+    }
+  };
+}
+
+// 10. CACTURNE LINE
+function createCacturneFighter(team, x, y) {
+  return {
+    id: 'cacturne', team, name: 'CACNEA', stage: 1, hp: 1000, maxHp: 1000, radius: 26, speed: 2.4,
+    spriteKey: 'cacnea', isDead: false, x, y, vx: 0, vy: 0, invincibleTimer: 0, wetTimer: 0, wetSlideTimer: 0, slideDir: 1, currentSlideWall: 'top', poisonTimer: 0, trappedTimer: 0, stunTimer: 0,
+    pinMissileTimer: 1.0, pinHitsLanded: 0, evoPendingTimer: 0,
+
+    init(x, y) { this.x = x; this.y = y; this.hp = 1000; this.stage = 1; this.name = 'CACNEA'; this.spriteKey = 'cacnea'; this.isDead = false; this.pinHitsLanded = 0; },
+    firePinMissile(arena) {
+      sfx.playPinMissile(); arena.screenShake = 3;
+      const angles = this.stage === 1 ? [0, Math.PI/2, Math.PI, 3*Math.PI/2] : [0, Math.PI/4, Math.PI/2, 3*Math.PI/4, Math.PI, 5*Math.PI/4, 3*Math.PI/2, 7*Math.PI/4];
+      const damage = this.stage === 1 ? 50 : 75, speed = this.stage === 1 ? 5.2 : 5.8, knockback = this.stage === 2 ? 15 : 0;
+      angles.forEach(ang => {
+        arena.spikes.push({ x: this.x + Math.cos(ang)*(this.radius+6), y: this.y + Math.sin(ang)*(this.radius+6), vx: Math.cos(ang)*speed, vy: Math.sin(ang)*speed, angle: ang, damage, knockback, radius: 6, life: 1.6, active: true, owner: this, color: this.stage === 1 ? '#84cc16' : '#10b981' });
+      });
+      arena.spawnShockwave(this.x, this.y, this.stage === 1 ? 32 : 46, '#10b981');
+    },
+    update(dt, target, arena) {
+      if (this.isDead || this.stunTimer > 0 || this.inSuplex) return;
+      if (this.stage === 1 && this.evoPendingTimer > 0) {
+        this.evoPendingTimer -= dt;
+        if (this.evoPendingTimer <= 0) {
+          this.stage = 2; this.name = 'CACTURNE'; this.spriteKey = 'cacturne'; this.radius = 32; this.speed = 2.6;
+          arena.triggerEvolutionEvent('⚡ CACNEA EVOLVED INTO CACTURNE! LEER UNLOCKED! ⚡', this);
+        }
+      }
+      this.pinMissileTimer -= dt;
+      if (this.pinMissileTimer <= 0) { this.pinMissileTimer = 1.0; this.firePinMissile(arena); }
+    },
+    onPinHit() {
+      if (this.stage === 1) {
+        this.pinHitsLanded++;
+        if (this.pinHitsLanded >= 5 && this.evoPendingTimer <= 0) {
+          this.evoPendingTimer = 1.5; arena.postEvent('🌵 5 SPIKES LANDED! CACNEA EVOLVING IN 1.5s!');
+        }
+      }
+    },
+    getHUD() {
+      const evo = this.stage === 1 ? `EVO: ${this.pinHitsLanded}/5 HITS` : 'EVO: MAX';
+      const m1Dmg = this.stage === 1 ? '4x 50 (1.0s)' : '8x 75 (1.0s)';
+      const m2Det = this.stage === 2 ? '+0.5 TILE PUSH' : '🔒 Cacturne';
+      return { name: this.name, evo, m1Name: 'Pin Missile', m1Dmg, m2Name: 'Leer', m2Detail: m2Det, m2Locked: this.stage < 2 };
+    }
+  };
+}
+
+// 11. EELEKTROSS LINE (Buff: 1.5x Spin Speed, +1.5 Tile Orbit Radius, Instant Zap Cannon)
+function createEelektrossFighter(team, x, y) {
+  return {
+    id: 'eelektross', team, name: 'TYNAMO', stage: 1, hp: 1000, maxHp: 1000, radius: 26, speed: 2.3,
+    spriteKey: 'tynamo', isDead: false, x, y, vx: 0, vy: 0, invincibleTimer: 0, wetTimer: 0, wetSlideTimer: 0, slideDir: 1, currentSlideWall: 'top', poisonTimer: 0, trappedTimer: 0, stunTimer: 0,
+    spawnBallTimer: 1.5, numBalls: 0, orbitAngle: 0, totalDmgDealt: 0, stageDmgDealt: 0, zapCannonCooldown: 0,
+
+    init(x, y) { this.x = x; this.y = y; this.hp = 1000; this.stage = 1; this.name = 'TYNAMO'; this.spriteKey = 'tynamo'; this.isDead = false; this.numBalls = 0; this.spawnBallTimer = 1.5; this.totalDmgDealt = 0; this.stageDmgDealt = 0; },
+    checkEvolution(arena) {
+      if (this.stage === 1 && this.stageDmgDealt >= 120) {
+        this.stage = 2; this.name = 'EELEKTRIK'; this.spriteKey = 'eelektrik'; this.radius = 30; this.speed = 2.4;
+        this.spawnBallTimer = 1.5; this.stageDmgDealt = 0;
+        arena.triggerEvolutionEvent('⚡ TYNAMO EVOLVED INTO EELEKTRIK! ⚡', this);
+      } else if (this.stage === 2 && this.stageDmgDealt >= 200) {
+        this.stage = 3; this.name = 'EELEKTROSS'; this.spriteKey = 'eelektross'; this.radius = 36; this.speed = 2.6;
+        this.spawnBallTimer = 1.5; this.stageDmgDealt = 0;
+        arena.triggerEvolutionEvent('⚡ EELEKTRIK EVOLVED INTO EELEKTROSS! ZAP CANNON UNLOCKED! ⚡', this);
+      }
+    },
+    update(dt, target, arena) {
+      if (this.isDead || this.stunTimer > 0 || this.inSuplex) return;
+
+      if (this.spawnBallTimer > 0) {
+        this.spawnBallTimer -= dt;
+        if (this.spawnBallTimer <= 0) {
+          if (this.stage === 1) this.numBalls = 1;
+          else if (this.stage === 2) this.numBalls = 2;
+          else if (this.stage === 3) this.numBalls = 3;
+          sfx.playElectricZap();
+          arena.postEvent(`⚡ ${this.name} SUMMONED ELECTRO BALL! (${this.numBalls} ACTIVE)`);
+        }
+      }
+
+      // 1.5x Spin Speed (3.5 * 1.5 = 5.25)
+      this.orbitAngle += dt * 5.25;
+      const ballDmg = this.stage === 1 ? 30 : (this.stage === 2 ? 40 : 50);
+      // Orbit radius +1.5 tile (+45px: radius + 20 + 45 = radius + 65)
+      const orbitR = this.radius + 65;
+
+      if (this.numBalls > 0 && !target.isUnderground && !target.inSuplex) {
+        for (let i = 0; i < this.numBalls; i++) {
+          const bAngle = this.orbitAngle + (i * (Math.PI * 2 / this.numBalls));
+          const bx = this.x + Math.cos(bAngle) * orbitR;
+          const by = this.y + Math.sin(bAngle) * orbitR;
+
+          if (Math.hypot(target.x - bx, target.y - by) < (target.radius + 10)) {
+            if (!this.lastBallHitTime || (Date.now() - this.lastBallHitTime) > 380) {
+              this.lastBallHitTime = Date.now();
+              target.takeDamage(ballDmg, arena, true);
+              sfx.playElectricZap();
+              arena.screenShake = 4;
+              arena.spawnShockwave(bx, by, 30, '#facc15');
+              this.totalDmgDealt += ballDmg;
+              this.stageDmgDealt += ballDmg;
+              this.checkEvolution(arena);
+            }
+          }
+        }
+      }
+
+      // Stage 3 Instant Zap Cannon Thunder (Can't miss, instant 1.5s stun)
+      if (this.stage === 3 && this.stageDmgDealt >= 300) {
+        this.zapCannonCooldown -= dt;
+        if (this.zapCannonCooldown <= 0 && !target.isUnderground && !target.inSuplex) {
+          this.zapCannonCooldown = 4.0;
+          target.stunTimer = 1.5; target.vx = 0; target.vy = 0;
+          sfx.playElectricZap(); arena.screenShake = 8;
+          arena.spawnParticle({ type: 'instantThunder', x1: this.x, y1: this.y, x2: target.x, y2: target.y, color: '#facc15', life: 0.25 });
+          arena.spawnShockwave(target.x, target.y, 45, '#facc15');
+          arena.postEvent('⚡ INSTANT ZAP CANNON STRUCK TARGET! (1.5s STUN)');
+        }
+      }
+    },
+    getHUD() {
+      let evo = this.stage === 1 ? `EVO: ${this.stageDmgDealt}/120 DMG` : (this.stage === 2 ? `EVO: ${this.stageDmgDealt}/200 DMG` : 'EVO: MAX');
+      const m1Name = 'Electro Ball';
+      const m1Dmg = `${this.numBalls}x ${this.stage === 1 ? 30 : (this.stage === 2 ? 40 : 50)} DMG`;
+      const m2Det = this.stage === 3 ? (this.stageDmgDealt >= 300 ? 'READY (INSTANT 1.5s STUN)' : `${this.stageDmgDealt}/300 DMG`) : '🔒 Eelektross';
+      return { name: this.name, evo, m1Name, m1Dmg, m2Name: 'Zap Cannon', m2Detail: m2Det, m2Locked: this.stage < 3 || this.stageDmgDealt < 300 };
+    }
+  };
+}
+
+// 12. FERROTHORN LINE (Initial 2s CD on evolve, Infinite Traveling Vine Whip, 2s Reset CD)
+function createFerrothornFighter(team, x, y) {
+  return {
+    id: 'ferrothorn', team, name: 'FERROSEED', stage: 1, hp: 1000, maxHp: 1000, radius: 26, speed: 2.2,
+    spriteKey: 'ferroseed', isDead: false, x, y, vx: 0, vy: 0, invincibleTimer: 0, wetTimer: 0, wetSlideTimer: 0, slideDir: 1, currentSlideWall: 'top', poisonTimer: 0, trappedTimer: 0, stunTimer: 0,
+    bumpCount: 0, vineCooldown: 2.0, vineState: 'COOLDOWN', vineTip: { x: 0, y: 0, vx: 0, vy: 0 }, vinePath: [], reelTarget: null,
+
+    init(x, y) { this.x = x; this.y = y; this.hp = 1000; this.stage = 1; this.name = 'FERROSEED'; this.spriteKey = 'ferroseed'; this.isDead = false; this.bumpCount = 0; this.vineState = 'COOLDOWN'; this.vineCooldown = 2.0; },
+    checkEvolution(arena) {
+      if (this.stage === 1 && this.bumpCount >= 4) {
+        this.stage = 2; this.name = 'FERROTHORN'; this.spriteKey = 'ferrothorn'; this.radius = 34; this.speed = 2.3;
+        this.vineState = 'COOLDOWN'; this.vineCooldown = 2.0; // Starts with 2s cooldown upon evolution
+        arena.triggerEvolutionEvent('🛡️ FERROSEED EVOLVED INTO FERROTHORN! VINE WHIP UNLOCKED! 🛡️', this);
+      }
+    },
+    onFighterContact(target, arena) {
+      const dmg = this.stage === 1 ? 50 : 80;
+      target.takeDamage(dmg, arena, true);
+      sfx.playBoneHit();
+      arena.spawnShockwave(target.x, target.y, 45, '#15803d');
+      arena.postEvent(`🛡️ IRON BARBS! ${target.name} TOOK ${dmg} DMG!`);
+
+      if (this.stage === 1) {
+        this.bumpCount++;
+        this.checkEvolution(arena);
+      }
+
+      if (this.vineState === 'REELING') {
+        this.vineState = 'COOLDOWN';
+        this.vineCooldown = 2.0; // 2s cooldown after reel completes
+        this.vinePath = [];
+        if (target) { target.isReeling = false; target.stunTimer = 0; arena.setRandomTrajectory(target); }
+      }
+    },
+    update(dt, target, arena) {
+      if (this.isDead || this.stunTimer > 0 || this.inSuplex) return;
+
+      if (this.stage === 2) {
+        if (this.vineState === 'COOLDOWN') {
+          this.vineCooldown -= dt;
+          if (this.vineCooldown <= 0) {
+            this.vineState = 'EXTENDING';
+            const angle = Math.atan2(target.y - this.y, target.x - this.x);
+            this.vineTip = { x: this.x, y: this.y, vx: Math.cos(angle) * 3.2, vy: Math.sin(angle) * 3.2 };
+            this.vinePath = [{ x: this.x, y: this.y }];
+            arena.postEvent('🌿 FERROTHORN CAST INFINITE VINE WHIP!');
+          }
+        } else if (this.vineState === 'EXTENDING') {
+          // Moves continuously & bumps infinitely
+          this.vineTip.x += this.vineTip.vx * dt * 60;
+          this.vineTip.y += this.vineTip.vy * dt * 60;
+          this.vinePath.push({ x: this.vineTip.x, y: this.vineTip.y });
+
+          // Wall Bounces for Vine Tip
+          if (this.vineTip.x < 8) { this.vineTip.x = 8; this.vineTip.vx *= -1; }
+          else if (this.vineTip.x > arena.size - 8) { this.vineTip.x = arena.size - 8; this.vineTip.vx *= -1; }
+          if (this.vineTip.y < 8) { this.vineTip.y = 8; this.vineTip.vy *= -1; }
+          else if (this.vineTip.y > arena.size - 8) { this.vineTip.y = arena.size - 8; this.vineTip.vy *= -1; }
+
+          // Catch Enemy
+          if (!target.isDead && !target.isUnderground && !target.inSuplex && Math.hypot(target.x - this.vineTip.x, target.y - this.vineTip.y) < (target.radius + 12)) {
+            this.vineState = 'REELING';
+            this.reelTarget = target;
+            target.isReeling = true;
+            target.stunTimer = 6.0;
+            target.vx = 0; target.vy = 0;
+            sfx.playWebHit();
+            arena.postEvent('🌿 VINE WHIP CAUGHT ENEMY! RAPIDLY REELING IN!');
+          }
+        } else if (this.vineState === 'REELING') {
+          for (let step = 0; step < 7; step++) {
+            if (this.vinePath.length > 1) {
+              const pt = this.vinePath.pop();
+              target.x = pt.x; target.y = pt.y;
+            } else {
+              target.x = this.x; target.y = this.y;
+              this.onFighterContact(target, arena);
+              break;
+            }
+          }
+        }
+      }
+    },
+    getHUD() {
+      const evo = this.stage === 1 ? `EVO: ${this.bumpCount}/4 BUMPS` : 'EVO: MAX';
+      const m1Dmg = this.stage === 1 ? '50 DMG Contact' : '80 DMG Contact';
+      const m2Det = this.stage === 2 ? (this.vineState === 'COOLDOWN' ? `${Math.max(0, this.vineCooldown).toFixed(1)}s CD` : (this.vineState === 'EXTENDING' ? 'SEARCHING...' : 'REELING!')) : '🔒 Ferrothorn';
+      return { name: this.name, evo, m1Name: 'Iron Barbs', m1Dmg, m2Name: 'Vine Whip', m2Detail: m2Det, m2Locked: this.stage < 2 };
+    }
+  };
+}
+
+
+/* ==========================================================================
+   3. ROSTER METADATA (12 TOTAL ACTIVE FIGHTERS)
+   ========================================================================== */
+const ROSTER = [
+  { id: 'charizard',  name: 'CHARIZARD LINE',  sprite: SPRITES.charizard,  factory: createCharizardFighter },
+  { id: 'lucario',    name: 'LUCARIO LINE',    sprite: SPRITES.lucario,    factory: createLucarioFighter },
+  { id: 'beedrill',   name: 'BEEDRILL LINE',   sprite: SPRITES.beedrill,   factory: createBeedrillFighter },
+  { id: 'inteleon',   name: 'INTELEON LINE',   sprite: SPRITES.inteleon,   factory: createInteleonFighter },
+  { id: 'kleavor',    name: 'KLEAVOR LINE',    sprite: SPRITES.kleavor,    factory: createKleavorFighter },
+  { id: 'garchomp',   name: 'GARCHOMP LINE',   sprite: SPRITES.garchomp,   factory: createGarchompFighter },
+  { id: 'spidops',    name: 'SPIDOPS LINE',    sprite: SPRITES.spidops,    factory: createSpidopsFighter },
+  { id: 'excadrill',  name: 'EXCADRILL LINE',  sprite: SPRITES.excadrill,  factory: createExcadrillFighter },
+  { id: 'marowak',    name: 'MAROWAK LINE',    sprite: SPRITES.marowak,    factory: createMarowakFighter },
+  { id: 'cacturne',   name: 'CACTURNE LINE',   sprite: SPRITES.cacturne,   factory: createCacturneFighter },
+  { id: 'eelektross', name: 'EELEKTROSS LINE', sprite: SPRITES.eelektross, factory: createEelektrossFighter },
+  { id: 'ferrothorn', name: 'FERROTHORN LINE', sprite: SPRITES.ferrothorn, factory: createFerrothornFighter }
+];
+
+let selectedBlueIndex = null;
+let selectedRedIndex = null;
+
+function buildFighterGrid() {
+  const gridElem = document.getElementById('fighterGrid');
+  gridElem.innerHTML = '';
+
+  for (let i = 0; i < 64; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'grid-slot';
+
+    if (i < ROSTER.length) {
+      slot.classList.add('selectable');
+      const fighter = ROSTER[i];
+      slot.innerHTML = `<img src="${fighter.sprite}" alt="${fighter.name}">`;
+      slot.addEventListener('click', () => handleSlotClick(i));
+    } else {
+      slot.classList.add('locked');
+      slot.innerHTML = `<span>?</span>`;
+    }
+    gridElem.appendChild(slot);
+  }
+}
+
+function handleSlotClick(index) {
+  sfx.init();
+  sfx.playSelect();
+
+  if (selectedBlueIndex === index) selectedBlueIndex = null;
+  else if (selectedRedIndex === index) selectedRedIndex = null;
+  else if (selectedBlueIndex === null) selectedBlueIndex = index;
+  else if (selectedRedIndex === null) selectedRedIndex = index;
+
+  updateSelectionUI();
+}
+
+function updateSelectionUI() {
+  const slots = document.querySelectorAll('.grid-slot');
+
+  slots.forEach((slot, idx) => {
+    slot.classList.remove('selected-blue', 'selected-red');
+    const existingBadge = slot.querySelector('.slot-badge');
+    if (existingBadge) existingBadge.remove();
+
+    if (idx === selectedBlueIndex) {
+      slot.classList.add('selected-blue');
+      const badge = document.createElement('div');
+      badge.className = 'slot-badge blue'; badge.innerText = '1P'; slot.appendChild(badge);
+    }
+    if (idx === selectedRedIndex) {
+      slot.classList.add('selected-red');
+      const badge = document.createElement('div');
+      badge.className = 'slot-badge red'; badge.innerText = '2P'; slot.appendChild(badge);
+    }
+  });
+
+  const previewBlue = document.getElementById('previewBlue');
+  const thumbBlue = document.getElementById('thumbBlue');
+  const nameBlue = document.getElementById('nameBlue');
+
+  if (selectedBlueIndex !== null) {
+    previewBlue.classList.add('active');
+    thumbBlue.innerHTML = `<img src="${ROSTER[selectedBlueIndex].sprite}">`;
+    nameBlue.innerText = ROSTER[selectedBlueIndex].name;
+  } else {
+    previewBlue.classList.remove('active');
+    thumbBlue.innerHTML = `<span style="color:#64748b; font-size:11px;">1P</span>`;
+    nameBlue.innerText = 'SELECT FIGHTER';
+  }
+
+  const previewRed = document.getElementById('previewRed');
+  const thumbRed = document.getElementById('thumbRed');
+  const nameRed = document.getElementById('nameRed');
+
+  if (selectedRedIndex !== null) {
+    previewRed.classList.add('active');
+    thumbRed.innerHTML = `<img src="${ROSTER[selectedRedIndex].sprite}">`;
+    nameRed.innerText = ROSTER[selectedRedIndex].name;
+  } else {
+    previewRed.classList.remove('active');
+    thumbRed.innerHTML = `<span style="color:#64748b; font-size:11px;">2P</span>`;
+    nameRed.innerText = 'SELECT FIGHTER';
+  }
+
+  const startBtn = document.getElementById('startCombatBtn');
+  const instr = document.getElementById('selectInstruction');
+
+  if (selectedBlueIndex !== null && selectedRedIndex !== null) {
+    startBtn.disabled = false; startBtn.classList.add('ready');
+    instr.innerText = '🔥 BOTH FIGHTERS READY! PRESS START COMBAT 🔥';
+  } else {
+    startBtn.disabled = true; startBtn.classList.remove('ready');
+    instr.innerText = selectedBlueIndex === null ? 'Tap a Pokémon for BLUE TEAM (1P)' : 'Tap a Pokémon for RED TEAM (2P)';
+  }
+}
+
+
+/* ==========================================================================
+   4. AUTONOMOUS ARENA ENGINE
+   ========================================================================== */
+class BattleArena {
+  constructor(canvasId) {
+    this.canvas = document.getElementById(canvasId);
+    this.ctx = this.canvas.getContext('2d');
+    this.size = 390;
+    this.blue = null;
+    this.red = null;
+    this.projectiles = [];
+    this.particles = [];
+    this.damageNumbers = [];
+    this.activeStrings = [];
+    this.activeBurrows = [];
+    this.activeStealthRocks = [];
+    this.spikes = [];
+    this.activeSwords = [];
+    this.bouncingBone = null;
+    this.screenShake = 0;
+    this.timeScale = 1.0;
+    this.timeScaleTimer = 0;
+    this.running = false;
+    this.startTime = 0;
+  }
+
+  startMatch(blueIdx, redIdx) {
+    sfx.init();
+    this.blue = ROSTER[blueIdx].factory('blue', 75, 195);
+    this.red = ROSTER[redIdx].factory('red', 315, 195);
+
+    this.blue.takeDamage = (amt, a, burst) => this.applyDamage(this.blue, amt, burst);
+    this.red.takeDamage = (amt, a, burst) => this.applyDamage(this.red, amt, burst);
+
+    this.blue.init(75, 195);
+    this.red.init(315, 195);
+
+    const a1 = Math.floor(Math.random() * 360) + 1, a2 = Math.floor(Math.random() * 360) + 1;
+    document.getElementById('launch-angles').innerText = `ANGLES: ${a1}° / ${a2}°`;
+    this.setTrajectoryAngle(this.blue, a1);
+    this.setTrajectoryAngle(this.red, a2);
+
+    this.projectiles = []; this.particles = []; this.damageNumbers = []; this.activeStrings = [];
+    this.activeBurrows = []; this.activeStealthRocks = []; this.spikes = []; this.activeSwords = []; this.bouncingBone = null;
+    this.running = true; this.startTime = Date.now();
+    this.postEvent('⚔️ ARENA BATTLE INITIATED! ⚔️');
+  }
+
+  setTrajectoryAngle(p, deg) {
+    const rad = deg * (Math.PI / 180);
+    p.vx = Math.cos(rad) * p.speed; p.vy = Math.sin(rad) * p.speed;
+  }
+
+  setRandomTrajectory(p) { this.setTrajectoryAngle(p, Math.floor(Math.random() * 360) + 1); }
+  postEvent(msg) { document.getElementById('eventTicker').innerText = msg; }
+  addPermanentString(str) { this.activeStrings.push(str); }
+  addBurrow(x, y, owner) { this.activeBurrows.push({ x, y, radius: 22, active: true, owner }); }
+
+  triggerEvolutionEvent(msg, fighter) {
+    this.timeScale = 0.25; this.timeScaleTimer = 1.0; fighter.invincibleTimer = 1.2;
+    sfx.playEvolution(); this.postEvent(msg);
+    this.spawnShockwave(fighter.x, fighter.y, 80, fighter.team === 'blue' ? '#3b82f6' : '#ef4444');
+  }
+
+  applyDamage(fighter, amount, isBurst) {
+    if (fighter.isDead || fighter.invincibleTimer > 0 || fighter.isUnderground || fighter.inSuplex || fighter.inDrillRun) return;
+    let finalAmt = amount;
+    if (fighter.id === 'beedrill' && fighter.stage === 2) finalAmt *= 0.5;
+
+    fighter.hp = Math.max(0, fighter.hp - finalAmt);
+    if (fighter.onInterrupted) fighter.onInterrupted();
+    if (fighter.checkEvolution) fighter.checkEvolution(this);
+
+    this.damageNumbers.push({
+      text: `-${Math.round(finalAmt)}`, x: fighter.x, y: fighter.y - 20,
+      color: fighter.team === 'blue' ? '#60a5fa' : '#f87171', alpha: 1.0, vy: -1.2, life: 0.7
+    });
+
+    if (fighter.hp <= 0) {
+      fighter.isDead = true; this.eliminateFighter(fighter);
+    }
+  }
+
+  eliminateFighter(deadFighter) {
+    sfx.playSplatter(); this.screenShake = 18;
+    const winner = deadFighter === this.blue ? this.red : this.blue;
+    for (let i = 0; i < 45; i++) {
+      const angle = Math.random() * Math.PI * 2, speed = 2 + Math.random() * 6;
+      this.particles.push({ type: 'splatter', x: deadFighter.x, y: deadFighter.y, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, radius: 3+Math.random()*5, color: deadFighter.team === 'blue' ? '#3b82f6' : '#ef4444', alpha: 1.0, life: 1.2 });
+    }
+    this.postEvent(`🏆 ${winner.name} WINS! 🏆`);
+  }
+
+  bounceApart(p1, p2, force = 3.5) {
+    sfx.playBounce();
+    const dx = p2.x - p1.x, dy = p2.y - p1.y, dist = Math.hypot(dx, dy) || 1;
+    const nx = dx / dist, ny = dy / dist, overlap = Math.max(0, (p1.radius + p2.radius) - dist);
+    p1.x -= nx * (overlap / 2 + 1); p1.y -= ny * (overlap / 2 + 1);
+    p2.x += nx * (overlap / 2 + 1); p2.y += ny * (overlap / 2 + 1);
+    p1.vx = -nx * force; p1.vy = -ny * force; p2.vx = nx * force; p2.vy = ny * force;
+  }
+
+  spawnParticle(p) { this.particles.push(p); }
+  spawnProjectile(p) { this.projectiles.push(p); }
+  spawnShockwave(x, y, radius, color) { this.particles.push({ type: 'shockwave', x, y, radius: 4, maxRadius: radius, color, alpha: 1.0, life: 0.35 }); }
+
+  distPointToSegment(px, py, x1, y1, x2, y2) {
+    const l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+    if (l2 === 0) return Math.hypot(px - x1, py - y1);
+    let t = Math.max(0, Math.min(1, ((px - x1)*(x2 - x1) + (py - y1)*(y2 - y1)) / l2));
+    return Math.hypot(px - (x1 + t*(x2 - x1)), py - (y1 + t*(y2 - y1)));
+  }
+
+  drawBoneGraphic(ctx, x, y, size, angle) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = '#f8fafc';
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1.5;
+
+    // Shaft
+    ctx.fillRect(-size * 0.7, -size * 0.18, size * 1.4, size * 0.36);
+    ctx.strokeRect(-size * 0.7, -size * 0.18, size * 1.4, size * 0.36);
+
+    // Left Knobs
+    ctx.beginPath();
+    ctx.arc(-size * 0.7, -size * 0.28, size * 0.26, 0, Math.PI * 2);
+    ctx.arc(-size * 0.7, size * 0.28, size * 0.26, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+
+    // Right Knobs
+    ctx.beginPath();
+    ctx.arc(size * 0.7, -size * 0.28, size * 0.26, 0, Math.PI * 2);
+    ctx.arc(size * 0.7, size * 0.28, size * 0.26, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
+  update(dt) {
+    if (!this.running || !this.blue || !this.red) return;
+    const scaledDt = dt * this.timeScale;
+
+    if (this.timeScaleTimer > 0) {
+      this.timeScaleTimer -= dt; if (this.timeScaleTimer <= 0) this.timeScale = 1.0;
+    }
+    if (this.screenShake > 0) this.screenShake -= dt * 25;
+
+    if (this.blue.invincibleTimer > 0) this.blue.invincibleTimer -= scaledDt;
+    if (this.red.invincibleTimer > 0) this.red.invincibleTimer -= scaledDt;
+
+    // Stun status
+    [this.blue, this.red].forEach(p => {
+      if (p.stunTimer > 0) p.stunTimer -= scaledDt;
+    });
+
+    if (!this.blue.isDead && !this.red.isDead) {
+      this.blue.update(scaledDt, this.red, this);
+      this.red.update(scaledDt, this.blue, this);
+    }
+
+    // Status Traps, Poison & Wet 5s Wall Slide with Seamless Cornering
+    [this.blue, this.red].forEach(p => {
+      if (p.wetTimer > 0) p.wetTimer -= scaledDt;
+
+      // Trapped by Burrow
+      if (p.trappedTimer > 0) {
+        p.trappedTimer -= scaledDt;
+        p.trappedTick = (p.trappedTick || 0.5) - scaledDt;
+        p.vx = 0; p.vy = 0;
+        if (p.trappedTick <= 0) {
+          p.trappedTick = 0.5; p.takeDamage(20, this, false); sfx.playBoneHit();
+        }
+        if (p.trappedTimer <= 0) { this.setRandomTrajectory(p); this.postEvent(`🔓 ${p.name} BROKE FREE FROM BURROW!`); }
+      }
+
+      // Poison DOT
+      if (!p.isDead && p.poisonTimer > 0) {
+        p.poisonTimer -= scaledDt; p.poisonTickTimer = (p.poisonTickTimer || 1.0) - scaledDt;
+        if (p.poisonTickTimer <= 0) {
+          p.poisonTickTimer = 1.0; p.takeDamage(10, this, false); sfx.playPoisonTick();
+          this.damageNumbers.push({ text: '-10 ☠️', x: p.x, y: p.y - 15, color: '#a855f7', alpha: 1.0, vy: -1.0, life: 0.8 });
+        }
+      }
+    });
+
+    // Wall physics, Wet Sliding (5s continuous perimeter slide around all corners)
+    [this.blue, this.red].forEach(p => {
+      if (p.isDead || p.inSuplex || p.inDrillRun || p.trappedTimer > 0 || p.isUnderground || p.stunTimer > 0 || p.isReeling) return;
+
+      if (p.wetSlideTimer > 0) {
+        p.wetSlideTimer -= scaledDt;
+        p.x += p.vx * scaledDt * 60; p.y += p.vy * scaledDt * 60;
+
+        // Continuous corner transitions based on slide direction (1 = Clockwise, -1 = Counter-Clockwise)
+        if (p.currentSlideWall === 'top') {
+          p.y = p.radius;
+          if (p.slideDir === 1 && p.x + p.radius >= this.size) {
+            p.x = this.size - p.radius; p.currentSlideWall = 'right'; p.vx = 0; p.vy = p.speed * 1.2; sfx.playSlip();
+          } else if (p.slideDir === -1 && p.x - p.radius <= 0) {
+            p.x = p.radius; p.currentSlideWall = 'left'; p.vx = 0; p.vy = p.speed * 1.2; sfx.playSlip();
+          }
+        } else if (p.currentSlideWall === 'right') {
+          p.x = this.size - p.radius;
+          if (p.slideDir === 1 && p.y + p.radius >= this.size) {
+            p.y = this.size - p.radius; p.currentSlideWall = 'bottom'; p.vx = -p.speed * 1.2; p.vy = 0; sfx.playSlip();
+          } else if (p.slideDir === -1 && p.y - p.radius <= 0) {
+            p.y = p.radius; p.currentSlideWall = 'top'; p.vx = -p.speed * 1.2; p.vy = 0; sfx.playSlip();
+          }
+        } else if (p.currentSlideWall === 'bottom') {
+          p.y = this.size - p.radius;
+          if (p.slideDir === 1 && p.x - p.radius <= 0) {
+            p.x = p.radius; p.currentSlideWall = 'left'; p.vx = 0; p.vy = -p.speed * 1.2; sfx.playSlip();
+          } else if (p.slideDir === -1 && p.x + p.radius >= this.size) {
+            p.x = this.size - p.radius; p.currentSlideWall = 'right'; p.vx = 0; p.vy = -p.speed * 1.2; sfx.playSlip();
+          }
+        } else if (p.currentSlideWall === 'left') {
+          p.x = p.radius;
+          if (p.slideDir === 1 && p.y - p.radius <= 0) {
+            p.y = p.radius; p.currentSlideWall = 'top'; p.vx = p.speed * 1.2; p.vy = 0; sfx.playSlip();
+          } else if (p.slideDir === -1 && p.y + p.radius >= this.size) {
+            p.y = this.size - p.radius; p.currentSlideWall = 'bottom'; p.vx = p.speed * 1.2; p.vy = 0; sfx.playSlip();
+          }
+        }
+
+        if (p.wetSlideTimer <= 0) {
+          this.setRandomTrajectory(p);
+          this.postEvent(`💨 ${p.name} FINISHED WET SLIDE & LAUNCHED!`);
+        }
+        return;
+      }
+
+      if (!(p.id === 'inteleon' && p.stage === 3 && p.snipeCooldown <= 0)) {
+        p.x += p.vx * scaledDt * 60; p.y += p.vy * scaledDt * 60;
+      }
+      let hitWall = false, wallId = '', hitX = p.x, hitY = p.y;
+      if (p.x - p.radius < 0) { p.x = p.radius; p.vx *= -1; hitWall = true; wallId = 'left'; hitX = 0; }
+      else if (p.x + p.radius > this.size) { p.x = this.size - p.radius; p.vx *= -1; hitWall = true; wallId = 'right'; hitX = this.size; }
+      if (p.y - p.radius < 0) { p.y = p.radius; p.vy *= -1; hitWall = true; wallId = 'top'; hitY = 0; }
+      else if (p.y + p.radius > this.size) { p.y = this.size - p.radius; p.vy *= -1; hitWall = true; wallId = 'bottom'; hitY = this.size; }
+
+      if (hitWall) {
+        if (p.wetTimer > 0) {
+          p.wetSlideTimer = 5.0; // 5 seconds soak glide duration
+          p.currentSlideWall = wallId;
+          p.slideDir = (Math.random() < 0.5) ? 1 : -1;
+          if (wallId === 'top') { p.vx = (p.slideDir === 1 ? 1 : -1) * p.speed * 1.2; p.vy = 0; }
+          else if (wallId === 'right') { p.vx = 0; p.vy = (p.slideDir === 1 ? 1 : -1) * p.speed * 1.2; }
+          else if (wallId === 'bottom') { p.vx = (p.slideDir === 1 ? -1 : 1) * p.speed * 1.2; p.vy = 0; }
+          else if (wallId === 'left') { p.vx = 0; p.vy = (p.slideDir === 1 ? -1 : 1) * p.speed * 1.2; }
+          sfx.playSlip();
+          this.postEvent(`💦 ${p.name} IS WET & GLIDING THE PERIMETER (5s)!`);
+        }
+        if (p.onWallBounce) p.onWallBounce(wallId, hitX, hitY, this);
+
+        // Check if opponent is Spidops Stage 2 -> Opponent weaved RED string
+        const spidopsEnemy = (p === this.blue ? this.red : this.blue);
+        if (spidopsEnemy && spidopsEnemy.id === 'spidops' && spidopsEnemy.stage === 2) {
+          if (!p.currentSpidopsAnchor) {
+            p.currentSpidopsAnchor = { x: hitX, y: hitY, wallId };
+            sfx.playWebAnchor();
+          } else if (p.currentSpidopsAnchor.wallId !== wallId) {
+            this.addPermanentString({
+              p1: { x: p.currentSpidopsAnchor.x, y: p.currentSpidopsAnchor.y },
+              p2: { x: hitX, y: hitY },
+              damage: 20,
+              color: '#ef4444',
+              hasTargetInside: false,
+              owner: p,
+              targetOnlyEnemy: false,
+              damagesSpecificTarget: p
+            });
+            sfx.playWebLock();
+            this.postEvent('🕸️ SPIDOPS STRING SHOT! ENEMY WEAVED RED STRING (20 DMG)!');
+            p.currentSpidopsAnchor = null;
+          }
+        }
+
+        // Notify enemy Scyther for evolution condition
+        const enemy = p === this.blue ? this.red : this.blue;
+        if (enemy && enemy.id === 'kleavor' && enemy.stage === 1) {
+          enemy.enemyWallBumpsObserved++;
+          enemy.checkEvolution(this);
+        }
+      }
+    });
+
+    // Active String Segments
+    this.activeStrings.forEach(str => {
+      [this.blue, this.red].forEach(target => {
+        if (!target.isDead && !target.isUnderground && !target.inSuplex && !target.inDrillRun) {
+          let shouldDamage = false;
+          if (str.damagesSpecificTarget) shouldDamage = (target === str.damagesSpecificTarget);
+          else if (str.targetOnlyEnemy) shouldDamage = (target !== str.owner);
+          else shouldDamage = (target !== str.owner);
+
+          if (shouldDamage) {
+            const d = this.distPointToSegment(target.x, target.y, str.p1.x, str.p1.y, str.p2.x, str.p2.y);
+            if (d < (target.radius + 3)) {
+              if (!str.hasTargetInside) {
+                str.hasTargetInside = true; target.takeDamage(str.damage, this, true);
+                sfx.playWebHit(); this.spawnShockwave(target.x, target.y, 40, str.color);
+                if (str.owner && str.owner.onEnemyHitString) str.owner.onEnemyHitString(this);
+              }
+            } else { str.hasTargetInside = false; }
+          }
+        }
+      });
+    });
+
+    // Active Burrows (Drilbur / Excadrill) - Cannot trap own owner
+    for (let i = this.activeBurrows.length - 1; i >= 0; i--) {
+      const burrow = this.activeBurrows[i];
+      [this.blue, this.red].forEach(p => {
+        if (p !== burrow.owner && !p.isDead && p.trappedTimer <= 0 && !p.isUnderground && !p.inSuplex && !p.inDrillRun && Math.hypot(p.x - burrow.x, p.y - burrow.y) < (p.radius + burrow.radius - 4)) {
+          p.trappedTimer = 2.5; p.trappedTick = 0.5; p.x = burrow.x; p.y = burrow.y; p.vx = 0; p.vy = 0;
+          p.takeDamage(20, this, true); sfx.playTrap(); this.screenShake = 8;
+          this.activeBurrows.splice(i, 1);
+          if (burrow.owner && burrow.owner.onTrapEnemy) burrow.owner.onTrapEnemy(this);
+        }
+      });
+    }
+
+    // Stealth Rocks (Kleavor) - 0.5s jump + 0.75s wobble
+    for (let i = this.activeStealthRocks.length - 1; i >= 0; i--) {
+      const rock = this.activeStealthRocks[i];
+      if (rock.jumpTimer > 0) {
+        rock.jumpTimer -= scaledDt;
+        const p = 1.0 - Math.max(0, rock.jumpTimer / 0.5);
+        rock.x = rock.startX + (rock.targetX - rock.startX) * p;
+        rock.y = rock.startY + (rock.targetY - rock.startY) * p - Math.sin(p * Math.PI) * 25;
+      } else if (rock.wobbleTimer > 0) {
+        rock.wobbleTimer -= scaledDt;
+        rock.x = rock.targetX;
+        rock.y = rock.targetY + Math.sin(rock.wobbleTimer * 20) * 3;
+        if (rock.wobbleTimer <= 0) rock.armed = true;
+      } else if (rock.armed) {
+        rock.x = rock.targetX;
+        rock.y = rock.targetY;
+        [this.blue, this.red].forEach(p => {
+          if (!p.isDead && p !== rock.owner && !p.isUnderground && !p.inSuplex && !p.inDrillRun && Math.hypot(p.x - rock.x, p.y - rock.y) < (p.radius + rock.radius)) {
+            p.takeDamage(rock.damage, this, true); sfx.playSlam();
+            this.spawnShockwave(rock.x, rock.y, 35, '#d97706');
+            this.activeStealthRocks.splice(i, 1);
+            this.postEvent(`🪨 STEALTH ROCK EXPLODED! -${rock.damage} HP!`);
+          }
+        });
+      }
+    }
+
+    // Swords Dance Items (Garchomp)
+    for (let i = this.activeSwords.length - 1; i >= 0; i--) {
+      const sword = this.activeSwords[i];
+      [this.blue, this.red].forEach(p => {
+        if (!p.isDead && !p.inSuplex && Math.hypot(p.x - sword.x, p.y - sword.y) < (p.radius + sword.radius)) {
+          if (p.id === 'garchomp') {
+            p.bonusDigDmg += 50; sfx.playEvolution();
+            this.postEvent('⚔️ GARCHOMP COLLECTED SWORD! +50 DIG DAMAGE!');
+          } else {
+            sfx.playBoneHit(); this.postEvent(`⚔️ ${p.name} DESTROYED THE SWORD!`);
+          }
+          this.activeSwords.splice(i, 1);
+        }
+      });
+    }
+
+    // Spikes (Cacturne)
+    for (let i = this.spikes.length - 1; i >= 0; i--) {
+      const s = this.spikes[i];
+      s.life -= scaledDt; s.x += s.vx * scaledDt * 60; s.y += s.vy * scaledDt * 60;
+      const target = s.owner === this.blue ? this.red : this.blue;
+      if (!target.isDead && !target.isUnderground && !target.inSuplex && !target.inDrillRun && Math.hypot(target.x - s.x, target.y - s.y) < (target.radius + s.radius)) {
+        target.takeDamage(s.damage, this, true); sfx.playPinHit();
+        if (s.knockback > 0) {
+          target.x += Math.cos(s.angle)*s.knockback; target.y += Math.sin(s.angle)*s.knockback;
+          target.vx += (Math.random()-0.5)*2.0; target.vy += (Math.random()-0.5)*2.0;
+        }
+        if (s.owner.onPinHit) s.owner.onPinHit(target, this);
+        this.spikes.splice(i, 1); continue;
+      }
+      if (s.life <= 0 || s.x < 0 || s.x > this.size || s.y < 0 || s.y > this.size) this.spikes.splice(i, 1);
+    }
+
+    // Bouncing Bone (Cubone) - Clean constant speed and clean collision bounce
+    if (this.bouncingBone && this.bouncingBone.active) {
+      const bone = this.bouncingBone;
+      if (bone.hitEnemyCooldown > 0) bone.hitEnemyCooldown -= scaledDt;
+
+      const curSpd = Math.hypot(bone.vx, bone.vy) || 1.0;
+      bone.vx = (bone.vx / curSpd) * bone.speed;
+      bone.vy = (bone.vy / curSpd) * bone.speed;
+
+      bone.x += bone.vx * scaledDt * 60;
+      bone.y += bone.vy * scaledDt * 60;
+      bone.rotation += scaledDt * 10;
+      if (bone.armTimer > 0) bone.armTimer -= scaledDt;
+
+      if (bone.x - bone.radius < 0) { bone.x = bone.radius; bone.vx *= -1; sfx.playBounce(); }
+      else if (bone.x + bone.radius > this.size) { bone.x = this.size - bone.radius; bone.vx *= -1; sfx.playBounce(); }
+      if (bone.y - bone.radius < 0) { bone.y = bone.radius; bone.vy *= -1; sfx.playBounce(); }
+      else if (bone.y + bone.radius > this.size) { bone.y = this.size - bone.radius; bone.vy *= -1; sfx.playBounce(); }
+
+      const target = bone.owner === this.blue ? this.red : this.blue;
+      if (!target.isDead && !target.isUnderground && !target.inSuplex && !target.inDrillRun && bone.hitEnemyCooldown <= 0 && Math.hypot(target.x - bone.x, target.y - bone.y) < (target.radius + bone.radius)) {
+        bone.hitEnemyCooldown = 0.6;
+        target.takeDamage(50, this, true);
+        sfx.playBoneHit();
+        const nx = (bone.x - target.x) / (Math.hypot(bone.x - target.x, bone.y - target.y) || 1);
+        const ny = (bone.y - target.y) / (Math.hypot(bone.x - target.x, bone.y - target.y) || 1);
+        bone.vx = nx * bone.speed; bone.vy = ny * bone.speed;
+        this.postEvent('🦴 BONE CLUB HIT! (50 DMG / CLEAN BOUNCE)');
+      }
+
+      if (bone.armTimer <= 0 && !bone.owner.isDead && Math.hypot(bone.owner.x - bone.x, bone.owner.y - bone.y) < (bone.owner.radius + bone.radius)) {
+        bone.active = false; this.bouncingBone = null; bone.owner.boneCaught = true; bone.owner.evoPendingTimer = 1.5;
+        sfx.playBoneCatch(); this.postEvent('🪓 CUBONE CAUGHT BONE! EVOLVING IN 1.5s!');
+      }
+    }
+
+    // Direct Fighter Collision & Riolu/Lucario Combo Trigger
+    if (!this.blue.isDead && !this.red.isDead && !this.blue.inSuplex && !this.red.inSuplex && !this.blue.inDrillRun && !this.red.inDrillRun && !this.blue.isDashing && !this.red.isDashing && !this.blue.isUnderground && !this.red.isUnderground) {
+      if (Math.hypot(this.red.x - this.blue.x, this.red.y - this.blue.y) < (this.blue.radius + this.red.radius)) {
+        if (this.blue.startCombo && !this.blue.inCombo && this.blue.comboCooldown <= 0) this.blue.startCombo(this.red);
+        else if (this.red.startCombo && !this.red.inCombo && this.red.comboCooldown <= 0) this.red.startCombo(this.blue);
+        else this.bounceApart(this.blue, this.red, 3.2);
+
+        if (this.blue.onFighterContact) this.blue.onFighterContact(this.red, this);
+        if (this.red.onFighterContact) this.red.onFighterContact(this.blue, this);
+      }
+    }
+
+    // Projectiles
+    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+      const proj = this.projectiles[i];
+      proj.life -= scaledDt;
+      const target = proj.owner === this.blue ? this.red : this.blue;
+      if (proj.type === 'hydro_snipe') {
+        const targetAng = Math.atan2(target.y - proj.y, target.x - proj.x), currAng = Math.atan2(proj.vy, proj.vx);
+        let diff = (targetAng - currAng + Math.PI) % (Math.PI * 2) - Math.PI;
+        const newAng = currAng + Math.sign(diff) * Math.min(Math.abs(diff), 2.5 * scaledDt), spd = Math.hypot(proj.vx, proj.vy);
+        proj.vx = Math.cos(newAng) * spd; proj.vy = Math.sin(newAng) * spd;
+      }
+      proj.x += proj.vx * scaledDt * 60; proj.y += proj.vy * scaledDt * 60;
+      if (Math.hypot(target.x - proj.x, target.y - proj.y) < (target.radius + proj.radius) && !target.isDead && !target.isUnderground && !target.inSuplex && !target.inDrillRun) {
+        if (proj.damage > 0) target.takeDamage(proj.damage, this, true);
+        if (proj.appliesPoison) target.poisonTimer = 5.0;
+        if (proj.appliesWet) { target.wetTimer = 5.0; if (proj.owner.onSoakLanded) proj.owner.onSoakLanded(target, this); }
+        this.spawnShockwave(proj.x, proj.y, 40, proj.color);
+        this.projectiles.splice(i, 1); continue;
+      }
+      if (proj.life <= 0 || proj.x < 0 || proj.x > this.size || proj.y < 0 || proj.y > this.size) this.projectiles.splice(i, 1);
+    }
+
+    // Particles
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i]; p.life -= scaledDt;
+      if (p.life <= 0) { this.particles.splice(i, 1); continue; }
+      p.x += (p.vx || 0) * scaledDt * 60; p.y += (p.vy || 0) * scaledDt * 60;
+      if (p.type === 'shockwave') p.radius += (p.maxRadius - p.radius) * 0.25;
+      if (p.type === 'boneRushSpin') p.radius += (p.maxRadius - p.radius) * 0.35;
+    }
+
+    // Damage numbers
+    for (let i = this.damageNumbers.length - 1; i >= 0; i--) {
+      const d = this.damageNumbers[i]; d.life -= scaledDt; d.y += d.vy * scaledDt * 60;
+      if (d.life <= 0) this.damageNumbers.splice(i, 1);
+    }
+  }
+
+  render() {
+    this.ctx.clearRect(0, 0, this.size, this.size);
+    this.ctx.save();
+    if (this.screenShake > 0) this.ctx.translate((Math.random()-0.5)*this.screenShake, (Math.random()-0.5)*this.screenShake);
+
+    // 1. Burrows (Excadrill)
+    this.activeBurrows.forEach(b => {
+      this.ctx.fillStyle = '#78350f'; this.ctx.beginPath(); this.ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); this.ctx.fill();
+      this.ctx.fillStyle = '#1c0f04'; this.ctx.beginPath(); this.ctx.arc(b.x, b.y, b.radius - 5, 0, Math.PI * 2); this.ctx.fill();
+    });
+
+    // 2. Stealth Rocks (Kleavor)
+    this.activeStealthRocks.forEach(r => {
+      this.ctx.save();
+      this.ctx.fillStyle = r.armed ? '#78350f' : '#b45309';
+      this.ctx.strokeStyle = '#f59e0b'; this.ctx.lineWidth = 1.5;
+      this.ctx.beginPath();
+      this.ctx.moveTo(r.x, r.y - r.radius);
+      this.ctx.lineTo(r.x + r.radius, r.y);
+      this.ctx.lineTo(r.x, r.y + r.radius);
+      this.ctx.lineTo(r.x - r.radius, r.y);
+      this.ctx.closePath();
+      this.ctx.fill(); this.ctx.stroke();
+      this.ctx.restore();
+    });
+
+    // 3. Swords Dance Items (Garchomp)
+    this.activeSwords.forEach(sw => {
+      this.ctx.font = '20px Arial';
+      this.ctx.fillText('⚔️', sw.x - 10, sw.y + 7);
+    });
+
+    // 4. Established Strings (White for Tarountula, Green for Spidops, Red for Opponent)
+    this.activeStrings.forEach(str => {
+      this.ctx.save(); this.ctx.strokeStyle = str.color; this.ctx.lineWidth = 2.5;
+      this.ctx.beginPath(); this.ctx.moveTo(str.p1.x, str.p1.y); this.ctx.lineTo(str.p2.x, str.p2.y); this.ctx.stroke();
+      this.ctx.restore();
+    });
+
+    // 5. Unweaved 25% Transparent Dotted String Tethers
+    [this.blue, this.red].forEach(p => {
+      if (p.currentAnchor && !p.isDead) {
+        this.ctx.save();
+        this.ctx.strokeStyle = p.stage === 1 ? 'rgba(248, 250, 252, 0.25)' : 'rgba(132, 204, 22, 0.25)';
+        this.ctx.lineWidth = 2.0; this.ctx.setLineDash([4, 4]);
+        this.ctx.beginPath(); this.ctx.moveTo(p.currentAnchor.x, p.currentAnchor.y); this.ctx.lineTo(p.x, p.y); this.ctx.stroke();
+        this.ctx.restore();
+      }
+      if (p.currentSpidopsAnchor && !p.isDead) {
+        this.ctx.save();
+        this.ctx.strokeStyle = 'rgba(239, 68, 68, 0.25)';
+        this.ctx.lineWidth = 2.0; this.ctx.setLineDash([4, 4]);
+        this.ctx.beginPath(); this.ctx.moveTo(p.currentSpidopsAnchor.x, p.currentSpidopsAnchor.y); this.ctx.lineTo(p.x, p.y); this.ctx.stroke();
+        this.ctx.restore();
+      }
+    });
+
+    // 6. Ferrothorn Vine Whip (90% transparent infinite vine line)
+    [this.blue, this.red].forEach(p => {
+      if (p.id === 'ferrothorn' && p.vineState !== 'IDLE' && p.vineState !== 'COOLDOWN' && p.vinePath.length > 1) {
+        this.ctx.save();
+        this.ctx.strokeStyle = 'rgba(34, 197, 94, 0.10)';
+        this.ctx.lineWidth = 6;
+        this.ctx.beginPath();
+        this.ctx.moveTo(p.x, p.y);
+        for (let i = 0; i < p.vinePath.length; i++) this.ctx.lineTo(p.vinePath[i].x, p.vinePath[i].y);
+        this.ctx.stroke();
+
+        this.ctx.fillStyle = '#15803d';
+        this.ctx.beginPath();
+        this.ctx.arc(p.vineTip.x, p.vineTip.y, 7, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.restore();
+      }
+    });
+
+    // 7. Bouncing Bone (Cubone)
+    if (this.bouncingBone && this.bouncingBone.active) {
+      this.drawBoneGraphic(this.ctx, this.bouncingBone.x, this.bouncingBone.y, 16, this.bouncingBone.rotation);
+    }
+
+    // 8. Bonemerang (Marowak)
+    [this.blue, this.red].forEach(p => {
+      if (p.id === 'marowak' && p.stage === 2 && (p.comboState === 'OUTWARD' || p.comboState === 'RETURN')) {
+        this.drawBoneGraphic(this.ctx, p.bonemerangPos.x, p.bonemerangPos.y, 20, p.bonemerangPos.angle);
+      }
+    });
+
+    // 9. Eelektross Orbiting Electro Balls (Orbit Radius = radius + 65px)
+    [this.blue, this.red].forEach(p => {
+      if (p.id === 'eelektross' && p.numBalls > 0 && !p.isDead && !p.isUnderground) {
+        const orbitR = p.radius + 65;
+        for (let i = 0; i < p.numBalls; i++) {
+          const bAngle = p.orbitAngle + (i * (Math.PI * 2 / p.numBalls));
+          const bx = p.x + Math.cos(bAngle) * orbitR;
+          const by = p.y + Math.sin(bAngle) * orbitR;
+          this.ctx.save();
+          this.ctx.fillStyle = '#facc15';
+          this.ctx.beginPath();
+          this.ctx.arc(bx, by, 8, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.strokeStyle = '#ffffff';
+          this.ctx.lineWidth = 1.5;
+          this.ctx.stroke();
+          this.ctx.restore();
+        }
+      }
+    });
+
+    // 10. Particles & Slashes
+    this.particles.forEach(p => {
+      this.ctx.save(); this.ctx.globalAlpha = Math.max(0, p.life / (p.maxLife || 0.35));
+      if (p.type === 'afterimage') {
+        const img = images[p.spriteKey];
+        if (img && img.complete) this.ctx.drawImage(img, p.x - p.radius, p.y - p.radius, p.radius*2, p.radius*2);
+      } else if (p.type === 'fire') {
+        this.ctx.fillStyle = p.color; this.ctx.beginPath(); this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); this.ctx.fill();
+      } else if (p.type === 'sandCone') {
+        this.ctx.fillStyle = p.color; this.ctx.beginPath(); this.ctx.moveTo(p.x, p.y);
+        this.ctx.arc(p.x, p.y, p.reach, p.angle - p.spread/2, p.angle + p.spread/2);
+        this.ctx.closePath(); this.ctx.fill();
+      } else if (p.type === 'coneSlash') {
+        this.ctx.strokeStyle = p.color; this.ctx.lineWidth = 5; this.ctx.beginPath();
+        this.ctx.arc(p.x, p.y, p.radius, p.angle + p.startOffset, p.angle + p.endOffset, p.startOffset > p.endOffset);
+        this.ctx.stroke();
+      } else if (p.type === 'boneRushSpin') {
+        this.ctx.strokeStyle = p.color; this.ctx.lineWidth = 6; this.ctx.beginPath();
+        this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); this.ctx.stroke();
+        this.drawBoneGraphic(this.ctx, p.x + Math.cos(p.life * 25) * p.radius, p.y + Math.sin(p.life * 25) * p.radius, 18, p.life * 30);
+      } else if (p.type === 'instantThunder') {
+        this.ctx.strokeStyle = p.color; this.ctx.lineWidth = 4;
+        this.ctx.beginPath();
+        this.ctx.moveTo(p.x1, p.y1);
+        const midX = (p.x1 + p.x2) / 2 + (Math.random() - 0.5) * 20;
+        const midY = (p.y1 + p.y2) / 2 + (Math.random() - 0.5) * 20;
+        this.ctx.lineTo(midX, midY);
+        this.ctx.lineTo(p.x2, p.y2);
+        this.ctx.stroke();
+      } else if (p.type === 'shockwave') {
+        this.ctx.strokeStyle = p.color; this.ctx.lineWidth = 3; this.ctx.beginPath();
+        this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); this.ctx.stroke();
+      } else if (p.type === 'circularSlash') {
+        this.ctx.strokeStyle = p.color; this.ctx.lineWidth = 5; this.ctx.beginPath();
+        this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 1.6); this.ctx.stroke();
+      } else {
+        this.ctx.fillStyle = p.color || '#fff'; this.ctx.beginPath(); this.ctx.arc(p.x, p.y, p.radius || 4, 0, Math.PI * 2); this.ctx.fill();
+      }
+      this.ctx.restore();
+    });
+
+    // 11. Projectiles (Spikes, Needles, Water Blasts, Soak Wave)
+    this.spikes.forEach(s => {
+      this.ctx.save(); this.ctx.translate(s.x, s.y); this.ctx.rotate(s.angle);
+      this.ctx.fillStyle = s.color; this.ctx.beginPath();
+      this.ctx.moveTo(10, 0); this.ctx.lineTo(-6, -4); this.ctx.lineTo(-3, 0); this.ctx.lineTo(-6, 4); this.ctx.closePath();
+      this.ctx.fill(); this.ctx.restore();
+    });
+
+    this.projectiles.forEach(proj => {
+      this.ctx.save();
+      if (proj.type === 'triangle_needle') {
+        const ang = Math.atan2(proj.vy, proj.vx);
+        this.ctx.translate(proj.x, proj.y); this.ctx.rotate(ang);
+        this.ctx.fillStyle = proj.color; this.ctx.beginPath();
+        this.ctx.moveTo(proj.length, 0); this.ctx.lineTo(-proj.length*0.6, -proj.width); this.ctx.lineTo(-proj.length*0.6, proj.width);
+        this.ctx.closePath(); this.ctx.fill();
+      } else if (proj.type === 'soak_wave') {
+        const ang = Math.atan2(proj.vy, proj.vx);
+        this.ctx.translate(proj.x, proj.y); this.ctx.rotate(ang);
+        this.ctx.strokeStyle = '#38bdf8'; this.ctx.lineWidth = 6;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, proj.radius, -Math.PI/3, Math.PI/3);
+        this.ctx.stroke();
+      } else {
+        this.ctx.fillStyle = proj.color; this.ctx.beginPath(); this.ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2); this.ctx.fill();
+      }
+      this.ctx.restore();
+    });
+
+    // 12. Fighters
+    if (this.blue) this.drawFighter(this.blue, '#3b82f6');
+    if (this.red) this.drawFighter(this.red, '#ef4444');
+
+    // 13. Damage Text & Emojis
+    this.damageNumbers.forEach(d => {
+      this.ctx.font = 'bold 14px Impact'; this.ctx.fillStyle = d.color; this.ctx.fillText(d.text, d.x - 10, d.y);
+    });
+    this.ctx.restore();
+  }
+
+  drawFighter(p, themeColor) {
+    if (p.isDead) return;
+    this.ctx.save();
+
+    if (p.inSuplex || (this.blue.inSuplex && p === this.red) || (this.red.inSuplex && p === this.blue)) {
+      const host = this.blue.inSuplex ? this.blue : this.red;
+      const flightScale = 1.0 + Math.sin(host.suplexProgress * Math.PI) * 0.9;
+      this.ctx.globalAlpha = 0.3 + Math.cos(host.suplexProgress * Math.PI * 2) * 0.2;
+      this.ctx.translate(p.x, p.y); this.ctx.scale(flightScale, flightScale); this.ctx.translate(-p.x, -p.y);
+    }
+
+    if (p.isUnderground) {
+      this.ctx.fillStyle = '#1e3a8a'; this.ctx.beginPath();
+      this.ctx.moveTo(p.x, p.y - 12); this.ctx.lineTo(p.x + 10, p.y + 8); this.ctx.lineTo(p.x - 10, p.y + 8);
+      this.ctx.closePath(); this.ctx.fill();
+      this.ctx.strokeStyle = '#38bdf8'; this.ctx.lineWidth = 1.5; this.ctx.stroke();
+      this.ctx.restore();
+      return;
+    }
+
+    if (p.invincibleTimer > 0 && Math.floor(Date.now() / 70) % 2 === 0) this.ctx.globalAlpha = 0.35;
+
+    const img = images[p.spriteKey], size = p.radius * 2.3;
+    if (img && img.complete) this.ctx.drawImage(img, p.x - size / 2, p.y - size / 2, size, size);
+
+    // HP Bar
+    const barW = 44, barH = 6, barX = p.x - barW / 2, barY = p.y - p.radius - 12;
+    this.ctx.fillStyle = '#000'; this.ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
+    this.ctx.fillStyle = themeColor; this.ctx.fillRect(barX, barY, barW * Math.max(0, p.hp / p.maxHp), barH);
+
+    // Floating Text Icons
+    let statusIcon = '';
+    if (p.wetTimer > 0) statusIcon += ' 💦';
+    if (p.poisonTimer > 0) statusIcon += ' ☠️';
+    if (p.trappedTimer > 0) statusIcon += ' 🕳️';
+    if (p.stunTimer > 0) statusIcon += ' ⚡';
+
+    this.ctx.font = 'bold 9px monospace'; this.ctx.fillStyle = '#fff'; this.ctx.textAlign = 'center';
+    this.ctx.fillText(`${Math.round(p.hp)}${statusIcon}`, p.x, barY - 3);
+
+    if (p.id === 'garchomp' && p.bonusDigDmg > 0) {
+      this.ctx.fillStyle = '#facc15'; this.ctx.fillText(`+${p.bonusDigDmg} DMG`, p.x, p.y + p.radius + 10);
+    }
+    this.ctx.restore();
+  }
+}
+
+
+/* ==========================================================================
+   5. CONTROLLER & TICK LOOP
+   ========================================================================== */
+const arena = new BattleArena('battleCanvas');
+const selectScreen = document.getElementById('selectScreen');
+const arenaScreen = document.getElementById('arenaScreen');
+
+function showSelectScreen() { arena.running = false; arenaScreen.classList.add('hidden'); selectScreen.classList.remove('hidden'); }
+function showArenaScreen() { selectScreen.classList.add('hidden'); arenaScreen.classList.remove('hidden'); arena.startMatch(selectedBlueIndex, selectedRedIndex); }
+
+document.getElementById('startCombatBtn').addEventListener('click', () => { if (selectedBlueIndex !== null && selectedRedIndex !== null) showArenaScreen(); });
+document.getElementById('goBackBtn').addEventListener('click', showSelectScreen);
+
+function updateHUD() {
+  if (!arena.running || !arena.blue || !arena.red) return;
+
+  const bHud = arena.blue.getHUD();
+  document.getElementById('p1Name').innerText = bHud.name;
+  document.getElementById('p1EvoReq').innerText = bHud.evo;
+  document.getElementById('p1Move1').innerHTML = `<span>MOVE 1: ${bHud.m1Name}</span><span>${bHud.m1Dmg}</span>`;
+  const p1m2 = document.getElementById('p1Move2');
+  p1m2.className = bHud.m2Locked ? 'move-box locked' : 'move-box';
+  p1m2.innerHTML = `<span>MOVE 2: ${bHud.m2Name}</span><span>${bHud.m2Detail}</span>`;
+
+  const rHud = arena.red.getHUD();
+  document.getElementById('p2Name').innerText = rHud.name;
+  document.getElementById('p2EvoReq').innerText = rHud.evo;
+  document.getElementById('p2Move1').innerHTML = `<span>MOVE 1: ${rHud.m1Name}</span><span>${rHud.m1Dmg}</span>`;
+  const p2m2 = document.getElementById('p2Move2');
+  p2m2.className = rHud.m2Locked ? 'move-box locked' : 'move-box';
+  p2m2.innerHTML = `<span>MOVE 2: ${rHud.m2Name}</span><span>${rHud.m2Detail}</span>`;
+
+  const elapsed = Math.floor((Date.now() - arena.startTime) / 1000);
+  const m = String(Math.floor(elapsed / 60)).padStart(2, '0'), s = String(elapsed % 60).padStart(2, '0');
+  document.getElementById('timer-text').innerText = `${m}:${s}`;
+}
+
+let lastTime = performance.now();
+function loop(now) {
+  const dt = Math.min((now - lastTime) / 1000, 0.1);
+  lastTime = now;
+  if (arena.running) { arena.update(dt); arena.render(); updateHUD(); }
+  requestAnimationFrame(loop);
+}
+
+buildFighterGrid();
+updateSelectionUI();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
